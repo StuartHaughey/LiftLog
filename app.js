@@ -203,7 +203,50 @@ const Views = {
     wrap.addEventListener('click', (e)=>{ const del=e.target?.dataset?.del; if(del){ if(confirm('Delete exercise? Existing session data will keep the name as (deleted).')){ Store.data.exercises = Store.data.exercises.filter(x=>x.id!==del); Store.save(); render(); notice('Exercise deleted'); } }
       const edit=e.target?.dataset?.edit; if(edit){ const ex=getExercise(edit); if(!ex) return; const nn=prompt('Exercise name', ex.name); if(nn===null) return; const mm=prompt('Muscle group', ex.muscle||'Other'); ex.name=(nn||ex.name).trim(); ex.muscle=(mm||ex.muscle).trim(); Store.save(); render(); notice('Exercise updated'); }
     });
-    $('#seed', wrap).addEventListener('click', ()=>{ const seeds=[ ['Bench Press','Chest'],['Incline DB Press','Chest'],['Lat Pulldown','Back'],['Barbell Row','Back'], ['Shoulder Press','Shoulders'],['Lateral Raise','Shoulders'],['Bicep Curl','Biceps'],['Triceps Pushdown','Triceps'], ['Back Squat','Legs'],['Romanian Deadlift','Glutes'],['Leg Press','Legs'],['Hanging Leg Raise','Core'] ]; const have=new Set(Store.data.exercises.map(e=>e.name.toLowerCase())); for (const [n,m] of seeds){ if(!have.has(n.toLowerCase())) Store.data.exercises.push({ id: uid(), name:n, muscle:m }); } Store.save(); render(); notice('Seeded common lifts'); });
+    $('#seed', wrap).addEventListener('click', ()=>{ const seeds = [
+  // Chest
+  ['Barbell Bench Press','Chest'],['Incline Barbell Bench Press','Chest'],['Decline Barbell Bench Press','Chest'],
+  ['Dumbbell Bench Press','Chest'],['Incline Dumbbell Bench Press','Chest'],['Decline Dumbbell Bench Press','Chest'],
+  ['Machine Chest Press','Chest'],['Cable Chest Fly','Chest'],['Dumbbell Chest Fly','Chest'],['Pec Deck Fly','Chest'],['Dips (Chest)','Chest'],
+
+  // Back
+  ['Pull-Up (Bodyweight)','Back'],['Chin-Up','Back'],
+  ['Barbell Row','Back'],['Dumbbell Row','Back'],['T-Bar Row','Back'],['Chest-Supported Row','Back'],
+  ['Seated Cable Row','Back'],['Lat Pulldown (Wide-Grip)','Back'],['Lat Pulldown (Close-Grip)','Back'],
+  ['Machine Row','Back'],['Straight-Arm Cable Pulldown','Back'],
+
+  // Shoulders
+  ['Overhead Press (Barbell)','Shoulders'],['Overhead Press (Dumbbell)','Shoulders'],['Arnold Press','Shoulders'],
+  ['Dumbbell Side Lateral Raise','Shoulders'],['Cable Side Lateral Raise','Shoulders'],['Machine Side Lateral Raise','Shoulders'],
+  ['Rear Delt Dumbbell Fly','Shoulders'],['Rear Delt Cable Fly','Shoulders'],['Face Pull (Cable)','Shoulders'],
+
+  // Biceps
+  ['Barbell Curl','Biceps'],['Dumbbell Curl','Biceps'],['Hammer Curl (DB)','Biceps'],['Incline Dumbbell Curl','Biceps'],
+  ['Preacher Curl (Barbell/DB)','Biceps'],['Cable Curl','Biceps'],['Machine Curl','Biceps'],
+
+  // Triceps
+  ['Triceps Pushdown (Cable)','Triceps'],['Overhead Dumbbell Extension','Triceps'],['Overhead Cable Extension','Triceps'],
+  ['EZ-Bar Skullcrusher','Triceps'],['Dumbbell Skullcrusher','Triceps'],['Close-Grip Bench Press','Triceps'],
+  ['Triceps Kickback (DB)','Triceps'],['Triceps Dip (Bench/Parallel Bar)','Triceps'],
+
+  // Legs / Glutes
+  ['Back Squat (Barbell)','Legs'],['Front Squat (Barbell)','Legs'],['Goblet Squat (DB)','Legs'],['Hack Squat (Machine)','Legs'],
+  ['Bulgarian Split Squat (DB/BB)','Legs'],['Walking Lunge (DB/BB)','Legs'],['Leg Press (Machine)','Legs'],
+  ['Leg Extension (Machine)','Legs'],['Leg Curl (Machine - Seated)','Legs'],['Leg Curl (Machine - Lying)','Legs'],
+  ['Romanian Deadlift (Barbell)','Glutes'],['Romanian Deadlift (Dumbbell)','Glutes'],
+  ['Conventional Deadlift (Barbell)','Legs'],['Sumo Deadlift (Barbell)','Legs'],
+  ['Hip Thrust (Barbell)','Glutes'],['Glute Bridge (Bodyweight/BB)','Glutes'],
+  ['Good Morning (Barbell)','Legs'],
+  ['Standing Calf Raise (Machine)','Calves'],['Seated Calf Raise (Machine)','Calves'],
+
+  // Core
+  ['Plank','Core'],['Hanging Leg Raise','Core'],['Captain’s Chair Knee Raise','Core'],
+  ['Cable Crunch','Core'],['Ab Wheel Rollout','Core'],['Russian Twist (DB/Plate)','Core'],
+
+  // Carry / Other
+  ['Farmer\'s Carry (DB)','Core'],['Farmer\'s Carry (KB)','Core'],['Farmer\'s Carry (Trap Bar)','Core']
+];
+ const have=new Set(Store.data.exercises.map(e=>e.name.toLowerCase())); for (const [n,m] of seeds){ if(!have.has(n.toLowerCase())) Store.data.exercises.push({ id: uid(), name:n, muscle:m }); } Store.save(); render(); notice('Seeded common lifts'); });
     $('#export', wrap).addEventListener('click', ()=>{ download(toCSV(Store.data.exercises, ['id','name','muscle']), 'liftlog_exercises.csv', 'text/csv'); notice('Exercises CSV exported'); });
     return wrap; },
 
@@ -279,4 +322,5 @@ if(!Store.data.exercises.length && !Store.data.sessions.length){ Store.data.exer
 ); Store.save(); }
 
 // Start app
+
 Router.start();
