@@ -47,7 +47,7 @@ const Views = {
       </div>
       <div class="card">
         <table role="table" aria-label="Sessions table">
-          <thead><tr><th>Date</th><th>Notes</th><th>Status</th><th>Exercises</th><th>Sets</th><th style="width:1%">Actions</th></tr></thead>
+          <thead><tr><th>Date</th><th>Notes</th><th>Status</th><th>Exercises</th><th>Sets</th><th>Actions</th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
         <p id="empty" class="muted" style="display:none; text-align:center; margin: 12px 0;">No sessions yet. Start one above.</p>
@@ -143,7 +143,7 @@ const Views = {
           </div>
         </div>
         <table role="table" aria-label="Sets table">
-          <thead><tr><th>#</th><th>Weight (kg)</th><th>Reps</th><th style="width:1%">Actions</th></tr></thead>
+          <thead><tr><th>#</th><th>Weight (kg)</th><th>Reps</th>Actions</th></tr></thead>
           <tbody>
             ${it.sets.map((st,idx)=>`<tr><td>${idx+1}</td><td>${st.weight}</td><td>${st.reps}</td><td><button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button></td></tr>`).join('')}
           </tbody>
@@ -189,7 +189,7 @@ const Views = {
       </form>
       <div class="card">
         <table role="table" aria-label="Exercises table">
-          <thead><tr><th>Name</th><th>Muscle</th><th style="width:1%">Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th>Muscle</th><th>Actions</th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
         <p id="empty" class="muted" style="display:none; text-align:center; margin: 12px 0;">No exercises yet. Add some above.</p>
@@ -324,3 +324,4 @@ if(!Store.data.exercises.length && !Store.data.sessions.length){ Store.data.exer
 // Start app
 
 Router.start();
+
