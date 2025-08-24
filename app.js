@@ -182,7 +182,11 @@ function prefillFromLast(exerciseId) {
   }
 }
     refreshExerciseOptions();
-
+    // Prefill as soon as an exercise is selected
+exerciseSelect.addEventListener('change', () => {
+  const exId = exerciseSelect.value;
+  if (exId) prefillFromLast(exId);
+});
     const blocks = $('#blocks', wrap);
     function renderBlocks(){ blocks.innerHTML=''; for (const it of s.items){ const ex=getExercise(it.exerciseId)||{name:'(deleted)', muscle:'Other'}; const div=document.createElement('div'); div.className='card stack'; const max=Math.max(0,...it.sets.map(x=>Number(x.weight)||0)); const totalReps=it.sets.reduce((t,x)=>t+(Number(x.reps)||0),0); div.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -205,7 +209,7 @@ function prefillFromLast(exerciseId) {
 
     $('#meta', wrap).addEventListener('input', ()=>{ s.date = $('#date', wrap).value || s.date; s.notes = $('#notes', wrap).value || ''; Store.save(); });
 
-    $('#add', wrap).addEventListener('submit', (e)=>{ e.preventDefault(); const exId = exerciseSelect.value; if(!exId) return notice('Pick an exercise'); const weight = Number($('#weight', wrap).value); const reps = Number($('#reps', wrap).value); if(!Number.isFinite(weight) || weight < 0) return notice('Enter weight'); if(!Number.isInteger(reps) || reps <= 0) return notice('Enter reps'); const item = upsertSessionItem(s, exId); item.sets.push({ weight, reps }); Store.save(); $('#weight', wrap).value=''; $('#reps', wrap).value=''; renderBlocks(); notice('Set added'); startTimer(); });
+    $('#add', wrap).addEventListener('submit', (e)=>{ e.preventDefault(); const exId = exerciseSelect.value; if(!exId) return notice('Pick an exercise'); const weight = Number($('#weight', wrap).value); const reps = Number($('#reps', wrap).value); if(!Number.isFinite(weight) || weight < 0) return notice('Enter weight'); if(!Number.isInteger(reps) || reps <= 0) return notice('Enter reps'); const item = upsertSessionItem(s, exId); item.sets.push({ weight, reps }); Store.save(); $('#weight', wrap).value=''; $('#reps', wrap).value=''; renderBlocks(); notice('Set added'); startTimer(); }); prefillFromLast(exId);
 
     blocks.addEventListener('click', (e)=>{ const addId = e.target?.dataset?.addset; if(addId){ const w = Number(prompt('Weight (kg)','0')); const r = Number(prompt('Reps','8')); if(Number.isFinite(w) && Number.isFinite(r) && r>0){ upsertSessionItem(s, addId).sets.push({ weight:w, reps:r }); Store.save(); renderBlocks(); notice('Set added'); startTimer(); } }
       const delBlock = e.target?.dataset?.delblock; if(delBlock){ if(confirm('Remove this exercise from session?')){ s.items = s.items.filter(i=>i.exerciseId!==delBlock); Store.save(); renderBlocks(); notice('Exercise removed'); } }
@@ -377,6 +381,7 @@ if(!Store.data.exercises.length && !Store.data.sessions.length){ Store.data.exer
 // Start app
 
 Router.start();
+
 
 
 
