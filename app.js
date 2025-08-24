@@ -99,17 +99,18 @@ const Views = {
               </div>
             </div>
             <div class="row">
-              <div>
-                <label for="reps">Reps</label>
-                <input id="reps" type="number" step="1" min="1" placeholder="e.g. 8" />
-                <div><span class="chip" id="prefillFlag" style="display:none; margin-top:6px;">↺ repeated</span></div>
-              </div>
-              <div style="display:flex; align-items:end; gap:8px;">
-                <button class="btn primary" type="submit">Add set</button>
-                <button class="btn" type="button" id="startTimer">Start 120s timer</button>
-                <span class="chip" id="timerDisplay">120s</span>
-              </div>
-            </div>
+  <div>
+    <label for="reps">Reps</label>
+    <input id="reps" type="number" step="1" min="1" placeholder="e.g. 8" />
+    <div><span class="chip" id="prefillFlag" style="display:none; margin-top:6px;">↺ repeated</span></div>
+  </div>
+  <div style="display:flex; align-items:end; gap:8px;">
+    <button class="btn primary" type="submit">Add set</button>
+    <button class="btn" type="button" id="startTimer">Start 120s timer</button>
+    <span class="chip" id="timerDisplay">120s</span>
+  </div>
+</div>
+
           </form>
         </div>
         <div id="blocks" class="stack"></div>
@@ -141,7 +142,6 @@ function findLastSetForExercise(exerciseId, currentSession) {
   }
   return null;
 }
-
 function prefillFromLast(exerciseId) {
   const last = findLastSetForExercise(exerciseId, s);
   const wEl = $('#weight', wrap);
@@ -381,6 +381,7 @@ if(!Store.data.exercises.length && !Store.data.sessions.length){ Store.data.exer
 // Start app
 
 Router.start();
+
 
 
 
