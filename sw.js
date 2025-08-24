@@ -1,4 +1,4 @@
-const CACHE = 'liftlog-cache-v3'; // bump this number each time you change CSS/JS
+const CACHE = 'liftlog-cache-v5'; // bump this number each time you change CSS/JS
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE)); });
 self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
 self.addEventListener('fetch', e => {
@@ -12,3 +12,4 @@ return hit || fetcher;
 );
 
 });
+
