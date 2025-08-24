@@ -123,6 +123,38 @@ const Views = {
     function onTimerEnd(){ toastTimer('Rest done — lift!'); try{ navigator.vibrate?.(200); }catch{} beep(); }
     function toastTimer(msg){ const el = $('#timerToast'); el.textContent = msg; el.classList.add('show'); setTimeout(()=> el.classList.remove('show'), 1800); }
     function beep(){ try{ const ctx = new (window.AudioContext||window.webkitAudioContext)(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 880; g.gain.value = 0.05; o.start(); setTimeout(()=>{ o.stop(); ctx.close(); }, 300); }catch{} }
+    // --- Auto-repeat helpers -------------------------------------------------
+function findLastSetForExercise(exerciseId, currentSession) {
+  // Phase 1: look in this session first
+  const itemNow = currentSession.items.find(i => i.exerciseId === exerciseId);
+  if (itemNow && itemNow.sets.length) {
+    return itemNow.sets[itemNow.sets.length - 1];
+  }
+  // Phase 2: fall back to most recent past session (by date desc)
+  const sessions = [...Store.data.sessions]
+    .filter(s => s.id !== currentSession.id)
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  for (const s of sessions) {
+    const it = s.items.find(i => i.exerciseId === exerciseId);
+    if (it && it.sets.length) return it.sets[it.sets.length - 1];
+  }
+  return null;
+}
+
+function prefillFromLast(exerciseId) {
+  const last = findLastSetForExercise(exerciseId, s);
+  const wEl = $('#weight', wrap);
+  const rEl = $('#reps', wrap);
+  const flag = $('#prefillFlag', wrap);
+  if (last) {
+    wEl.value = (Number(last.weight) ?? 0);
+    rEl.value = (Number(last.reps) ?? 1);
+    flag.style.display = 'inline-block';
+  } else {
+    // nothing to prefill; leave fields as-is and hide flag
+    flag.style.display = 'none';
+  }
+}
     $('#startTimer', wrap).addEventListener('click', startTimer);
 
     // Session logic
@@ -344,5 +376,6 @@ if(!Store.data.exercises.length && !Store.data.sessions.length){ Store.data.exer
 // Start app
 
 Router.start();
+
 
 
