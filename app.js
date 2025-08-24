@@ -127,7 +127,27 @@ const Views = {
 
     // Session logic
     const exerciseSelect = $('#exercise', wrap);
-    function refreshExerciseOptions(){ exerciseSelect.innerHTML = Store.data.exercises.length ? '' : '<option value="">No exercises — add some first</option>'; for (const ex of Store.data.exercises){ const opt = document.createElement('option'); opt.value = ex.id; opt.textContent = `${ex.name} (${ex.muscle||'Other'})`; exerciseSelect.appendChild(opt); } }
+    function refreshExerciseOptions(){
+  const groups = {};
+  for (const ex of Store.data.exercises) {
+    const m = ex.muscle || 'Other';
+    (groups[m] ||= []).push(ex);
+  }
+  // Sort muscles A–Z, then exercises A–Z
+  const muscles = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+  exerciseSelect.innerHTML = Store.data.exercises.length ? '' : '<option value="">No exercises — add some first</option>';
+  for (const m of muscles) {
+    const og = document.createElement('optgroup');
+    og.label = m;
+    for (const ex of groups[m].sort((a,b)=>a.name.localeCompare(b.name))) {
+      const opt = document.createElement('option');
+      opt.value = ex.id;
+      opt.textContent = ex.name;
+      og.appendChild(opt);
+    }
+    exerciseSelect.appendChild(og);
+  }
+}
     refreshExerciseOptions();
 
     const blocks = $('#blocks', wrap);
@@ -324,4 +344,5 @@ if(!Store.data.exercises.length && !Store.data.sessions.length){ Store.data.exer
 // Start app
 
 Router.start();
+
 
