@@ -102,6 +102,7 @@ const Views = {
               <div>
                 <label for="reps">Reps</label>
                 <input id="reps" type="number" step="1" min="1" placeholder="e.g. 8" />
+                <div><span class="chip" id="prefillFlag" style="display:none; margin-top:6px;">↺ repeated</span></div>
               </div>
               <div style="display:flex; align-items:end; gap:8px;">
                 <button class="btn primary" type="submit">Add set</button>
@@ -376,6 +377,7 @@ if(!Store.data.exercises.length && !Store.data.sessions.length){ Store.data.exer
 // Start app
 
 Router.start();
+
 
 
 
