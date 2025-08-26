@@ -1,3 +1,6 @@
+// --- App metadata ---
+const APP_VERSION = "v0.4"; // bump this when you release
+
 // Tiny utilities
 const $ = (sel, el=document) => el.querySelector(sel);
 const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
@@ -431,6 +434,12 @@ if(!Store.data.exercises.length && !Store.data.sessions.length){ Store.data.exer
 // Start app
 
 Router.start();
+
+// --- Footer version text ---
+const footer = document.getElementById("footer");
+if (footer) {
+  footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
+}
 
 
 
