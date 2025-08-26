@@ -156,6 +156,56 @@ function prefillFromLast(exerciseId) {
     flag.style.display = 'none';
   }
 }
+// --- Auto-repeat helpers -------------------------------------------------
+function ensurePrefillFlag() {
+  let flag = $('#prefillFlag', wrap);
+  if (!flag) {
+    // Create the "↺ repeated" chip just under the reps input if it doesn't exist
+    const repsInput = $('#reps', wrap);
+    const holder = document.createElement('div');
+    holder.style.marginTop = '6px';
+    flag = document.createElement('span');
+    flag.id = 'prefillFlag';
+    flag.className = 'chip';
+    flag.style.display = 'none';
+    flag.textContent = '↺ repeated';
+    holder.appendChild(flag);
+    repsInput.parentElement.appendChild(holder);
+  }
+  return flag;
+}
+
+function findLastSetForExercise(exerciseId, currentSession) {
+  // Phase 1: latest set for this exercise in this session
+  const itemNow = currentSession.items.find(i => i.exerciseId === exerciseId);
+  if (itemNow && itemNow.sets.length) return itemNow.sets[itemNow.sets.length - 1];
+
+  // Phase 2: search past sessions (newest → oldest by date ISO YYYY-MM-DD)
+  const sessions = [...Store.data.sessions]
+    .filter(x => x.id !== currentSession.id)
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  for (const sess of sessions) {
+    const it = sess.items.find(i => i.exerciseId === exerciseId);
+    if (it && it.sets.length) return it.sets[it.sets.length - 1];
+  }
+  return null;
+}
+
+function prefillFromLast(exerciseId) {
+  const last = findLastSetForExercise(exerciseId, s);
+  const wEl = $('#weight', wrap);
+  const rEl = $('#reps', wrap);
+  const flag = ensurePrefillFlag();
+
+  if (last) {
+    wEl.value = Number(last.weight) || 0;
+    rEl.value = Number(last.reps) || 1;
+    flag.style.display = 'inline-block';
+  } else {
+    flag.style.display = 'none';
+    // leave fields as-is so the user can type fresh values
+  }
+}
     $('#startTimer', wrap).addEventListener('click', startTimer);
 
     // Session logic
