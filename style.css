@@ -30,11 +30,12 @@ a { color: inherit; text-decoration: none; }
 
 header {
   border-bottom: 1px solid rgba(255,255,255,.08);
-  backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
   z-index: 10;
+  background: var(--bg); /* flat, fast */
 }
+
 .bar {
   display: flex;
   align-items: center;
@@ -79,7 +80,7 @@ main {
   background: var(--panel);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.3);
+  box-shadow: 0 4px 14px rgba(0,0,0,.22);
 }
 
 .stack { display: grid; gap: 16px; }
@@ -185,13 +186,12 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   bottom: 16px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: rgba(0,0,0,.65);
-  backdrop-filter: blur(6px);
+  background: rgba(0,0,0,.75); /* no blur */
   border: 1px solid rgba(255,255,255,.18);
   color: var(--text);
   opacity: 0;
   transform: translateY(10px);
-  transition: all .3s ease;
+  transition: all .25s ease;
   pointer-events: none;
 }
 .notice.show {
