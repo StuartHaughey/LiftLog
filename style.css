@@ -156,6 +156,15 @@ input, select, textarea {
   color: var(--text);
   font-size: 1rem;
 }
+/* iOS: make the select obviously tappable and ensure contrast */
+select {
+  cursor: pointer;
+  background-color: rgba(255,255,255,.02);
+  color: var(--text);
+}
+select:invalid {
+  color: #9aa8bd; /* placeholder tone until a real option is picked */
+}
 input::placeholder { color: #64748b; }
 
 /* Exercise picker group headings */
