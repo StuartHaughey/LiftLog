@@ -1,5 +1,5 @@
 // Bump this when you change JS/CSS/HTML so PWAs fetch fresh files
-const CACHE = 'liftlog-cache-v9';
+const CACHE = 'liftlog-cache-v10';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -37,4 +37,5 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
 
