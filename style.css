@@ -18,6 +18,8 @@ body {
   background: var(--bg);  /* flat colour, no bands */
   color: var(--text);
   line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -113,6 +115,7 @@ main {
   color: #fff;
   cursor: pointer;
   font-size: 1rem;
+  -webkit-tap-highlight-color: transparent;
 }
 .btn:hover { border-color: rgba(56,189,248,.45); }
 .btn.primary {
@@ -126,6 +129,12 @@ main {
   color: #fecaca;
 }
 .btn:disabled { opacity: .6; cursor: not-allowed; }
+
+:focus-visible {
+  outline: 3px solid rgba(56,189,248,.7);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
 
 form .row {
   display: grid;
@@ -148,6 +157,14 @@ input, select, textarea {
   font-size: 1rem;
 }
 input::placeholder { color: #64748b; }
+
+/* Exercise picker group headings */
+select optgroup[label] {
+  color: #a3b2c7;
+  font-style: normal;
+  font-weight: 600;
+  background: rgba(255,255,255,.02);
+}
 
 table { width: 100%; border-collapse: collapse; }
 th, td {
@@ -210,4 +227,9 @@ details summary { cursor: pointer; }
 /* Extra tweak for Sessions table on narrow phones */
 @media (max-width: 520px) {
   td:nth-child(2) { max-width: 220px; }
+}
+
+/* Be kind to folks who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
 }
