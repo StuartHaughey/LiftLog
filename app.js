@@ -1,5 +1,5 @@
 // --- App metadata ---
-const APP_VERSION = "v0.4"; // bump this when you release
+const APP_VERSION = "v0.5"; // bump this when you release
 
 // Tiny utilities
 const $ = (sel, el=document) => el.querySelector(sel);
@@ -211,6 +211,18 @@ const Views = {
       }catch{}
     }
 
+    // --- PB helpers -------------------------------------------------
+    function priorMaxWeightOtherSessions(exerciseId, currentSessionId){
+      let max = 0;
+      for (const sess of Store.data.sessions){
+        if (sess.id === currentSessionId) continue;
+        const it = sess.items.find(i => i.exerciseId === exerciseId);
+        if (!it) continue;
+        for (const st of it.sets) max = Math.max(max, Number(st.weight)||0);
+      }
+      return max;
+    }
+
     // --- Auto-repeat helpers -------------------------------------------------
     function ensurePrefillFlag() {
       let flag = $('#prefillFlag', wrap);
@@ -265,28 +277,29 @@ const Views = {
     const exerciseSelect = $('#exercise', wrap);
 
     function refreshExerciseOptions(){
-  const groups = {};
-  for (const ex of Store.data.exercises) {
-    const m = ex.muscle || 'Other';
-    (groups[m] ||= []).push(ex);
-  }
-  const muscles = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
-
-  const parts = [`<option value="">— Select exercise —</option>`];
-  if (!muscles.length) {
-    parts.push(`<option value="" disabled>No exercises — add some first</option>`);
-  } else {
-    for (const m of muscles) {
-      parts.push(`<optgroup label="${m}">`);
-      for (const ex of groups[m].sort((a,b)=>a.name.localeCompare(b.name))) {
-        parts.push(`<option value="${ex.id}">${ex.name}</option>`);
+      const groups = {};
+      for (const ex of Store.data.exercises) {
+        const m = ex.muscle || 'Other';
+        (groups[m] ||= []).push(ex);
       }
-      parts.push(`</optgroup>`);
-    }
-  }
-  exerciseSelect.innerHTML = parts.join('');
-}
+      // Sort muscles A–Z, then exercises A–Z
+      const muscles = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
 
+      // iOS-friendly: include a placeholder
+      const parts = [`<option value="">— Select exercise —</option>`];
+      if (!muscles.length) {
+        parts.push(`<option value="" disabled>No exercises — add some first</option>`);
+      } else {
+        for (const m of muscles) {
+          parts.push(`<optgroup label="${m}">`);
+          for (const ex of groups[m].sort((a,b)=>a.name.localeCompare(b.name))) {
+            parts.push(`<option value="${ex.id}">${ex.name}</option>`);
+          }
+          parts.push(`</optgroup>`);
+        }
+      }
+      exerciseSelect.innerHTML = parts.join('');
+    }
     refreshExerciseOptions();
 
     // Prefill as soon as an exercise is selected
@@ -303,8 +316,13 @@ const Views = {
       for (const it of s.items){
         const ex=getExercise(it.exerciseId)||{name:'(deleted)', muscle:'Other'};
         const div=document.createElement('div'); div.className='card stack';
+
+        // Starting PB threshold = historical max outside this session
+        let runningPB = priorMaxWeightOtherSessions(it.exerciseId, s.id);
+
         const max=Math.max(0,...it.sets.map(x=>Number(x.weight)||0));
         const totalReps=it.sets.reduce((t,x)=>t+(Number(x.reps)||0),0);
+
         div.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
           <div>
@@ -319,7 +337,18 @@ const Views = {
         <table role="table" aria-label="Sets table">
           <thead><tr><th>#</th><th>Weight (kg)</th><th>Reps</th><th>Actions</th></tr></thead>
           <tbody>
-            ${it.sets.map((st,idx)=>`<tr><td>${idx+1}</td><td>${st.weight}</td><td>${st.reps}</td><td><button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button></td></tr>`).join('')}
+            ${it.sets.map((st,idx)=>{
+              const w = Number(st.weight)||0;
+              const isPB = w > runningPB;
+              if (isPB) runningPB = w;
+              const pbChip = isPB ? `<span class="chip pb" style="margin-left:6px;">PB</span>` : '';
+              return `<tr>
+                <td>${idx+1}</td>
+                <td>${w}${pbChip}</td>
+                <td>${st.reps}</td>
+                <td><button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button></td>
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>`;
         blocks.appendChild(div);
@@ -342,14 +371,25 @@ const Views = {
       if(!Number.isFinite(weight) || weight < 0) return notice('Enter weight');
       if(!Number.isInteger(reps) || reps <= 0) return notice('Enter reps');
 
+      // PB check: prior max = other sessions + any sets already in this session
       const item = upsertSessionItem(s, exId);
+      const priorInThisSession = Math.max(0, ...item.sets.map(st => Number(st.weight)||0));
+      const priorOutside = priorMaxWeightOtherSessions(exId, s.id);
+      const priorMax = Math.max(priorInThisSession, priorOutside);
+      const isPB = weight > priorMax;
+
       item.sets.push({ weight, reps });
       Store.save();
 
       $('#weight', wrap).value='';
       $('#reps', wrap).value='';
       renderBlocks();
-      notice('Set added');
+      if (isPB) {
+        const exName = (getExercise(exId)?.name) || 'exercise';
+        notice(`New PB for ${exName}: ${weight} kg`);
+      } else {
+        notice('Set added');
+      }
       startTimer();
 
       // Prefill next set for convenience
@@ -625,4 +665,3 @@ const footer = document.getElementById("footer");
 if (footer) {
   footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
 }
-
