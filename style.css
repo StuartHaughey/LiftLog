@@ -198,6 +198,13 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   color: #cbd5e1;
   white-space: nowrap;
 }
+/* Personal Best badge */
+.chip.pb {
+  background: rgba(52,211,153,.18);     /* green-ish */
+  border-color: rgba(52,211,153,.4);
+  color: #86efac;
+}
+
 
 .footer {
   color: #90a4c1;
