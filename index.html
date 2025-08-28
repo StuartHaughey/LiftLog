@@ -1,18 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-AU">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>LiftLog — Simple Weight Training Tracker (PWA)</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
     <header>
       <div class="bar">
-        <div class="brand"><span class="logo" aria-hidden="true"></span> <span>LiftLog</span></div>
+        <div class="brand"><span class="logo" aria-hidden="true"></span><span>LiftLog</span></div>
         <nav aria-label="Primary">
           <a href="#/sessions" id="nav-sessions">Sessions</a>
           <a href="#/exercises" id="nav-exercises">Exercises</a>
@@ -22,12 +25,17 @@
         </nav>
       </div>
     </header>
+
     <main id="app"></main>
 
-  <footer class="footer" id="footer"></footer>  
-</div>
-<div id="notice" class="notice" role="status" aria-live="polite"></div>
+    <!-- Footer text is injected by app.js using APP_VERSION -->
+    <footer class="footer" id="footer"></footer>
+  </div>
+
+  <!-- Toasts / notices live outside the main layout -->
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
   <div id="timerToast" class="notice" role="status" aria-live="polite" style="left:16px; right:auto;"></div>
+
   <script src="app.js" defer></script>
 </body>
 </html>
