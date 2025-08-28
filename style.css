@@ -116,6 +116,8 @@ main {
   cursor: pointer;
   font-size: 1rem;
   -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;       /* prevent vertical letter stacking */
+  word-break: keep-all;      /* don't split words like "Open" */
 }
 .btn:hover { border-color: rgba(56,189,248,.45); }
 .btn.primary {
@@ -156,15 +158,6 @@ input, select, textarea {
   color: var(--text);
   font-size: 1rem;
 }
-/* iOS: make the select obviously tappable and ensure contrast */
-select {
-  cursor: pointer;
-  background-color: rgba(255,255,255,.02);
-  color: var(--text);
-}
-select:invalid {
-  color: #9aa8bd; /* placeholder tone until a real option is picked */
-}
 input::placeholder { color: #64748b; }
 
 /* Exercise picker group headings */
@@ -175,19 +168,28 @@ select optgroup[label] {
   background: rgba(255,255,255,.02);
 }
 
-table { width: 100%; border-collapse: collapse; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
 th, td {
   text-align: left;
   padding: 10px 12px;
   border-bottom: 1px dashed rgba(255,255,255,.08);
   vertical-align: top;
-  word-break: break-word; /* prevents long text squashing */
+  /* FIX: don't break words into single letters */
+  word-break: normal;
 }
 th {
   font-size: 13px;
   color: #8aa0bd;
   font-weight: 600;
+  white-space: nowrap; /* keep headers on one line */
 }
+/* Prevent action buttons from wrapping vertically */
+td:last-child .btn { white-space: nowrap; word-break: keep-all; }
+
 tbody tr:hover { background: rgba(255,255,255,.03); }
 
 .chip {
@@ -200,11 +202,10 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 }
 /* Personal Best badge */
 .chip.pb {
-  background: rgba(52,211,153,.18);     /* green-ish */
+  background: rgba(52,211,153,.18);
   border-color: rgba(52,211,153,.4);
   color: #86efac;
 }
-
 
 .footer {
   color: #90a4c1;
@@ -240,9 +241,14 @@ details summary { cursor: pointer; }
   nav { flex-wrap: wrap; }
 }
 
-/* Extra tweak for Sessions table on narrow phones */
+/* Small phones: keep controls readable and avoid wrapping */
 @media (max-width: 520px) {
-  td:nth-child(2) { max-width: 220px; }
+  th, td { padding: 10px 10px; }
+  .btn { padding: 10px 12px; font-size: .975rem; }
+  /* Notes column (2nd) can wrap; others try to stay on one line */
+  td:nth-child(2) { max-width: 65vw; overflow-wrap: anywhere; }
+  /* Make tables scroll horizontally if they still overflow */
+  .card > table { display: block; overflow-x: auto; }
 }
 
 /* Be kind to folks who prefer less motion */
