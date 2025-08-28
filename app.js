@@ -265,26 +265,28 @@ const Views = {
     const exerciseSelect = $('#exercise', wrap);
 
     function refreshExerciseOptions(){
-      const groups = {};
-      for (const ex of Store.data.exercises) {
-        const m = ex.muscle || 'Other';
-        (groups[m] ||= []).push(ex);
+  const groups = {};
+  for (const ex of Store.data.exercises) {
+    const m = ex.muscle || 'Other';
+    (groups[m] ||= []).push(ex);
+  }
+  const muscles = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+
+  const parts = [`<option value="">— Select exercise —</option>`];
+  if (!muscles.length) {
+    parts.push(`<option value="" disabled>No exercises — add some first</option>`);
+  } else {
+    for (const m of muscles) {
+      parts.push(`<optgroup label="${m}">`);
+      for (const ex of groups[m].sort((a,b)=>a.name.localeCompare(b.name))) {
+        parts.push(`<option value="${ex.id}">${ex.name}</option>`);
       }
-      // Sort muscles A–Z, then exercises A–Z
-      const muscles = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
-      exerciseSelect.innerHTML = Store.data.exercises.length ? '' : '<option value="">No exercises — add some first</option>';
-      for (const m of muscles) {
-        const og = document.createElement('optgroup');
-        og.label = m;
-        for (const ex of groups[m].sort((a,b)=>a.name.localeCompare(b.name))) {
-          const opt = document.createElement('option');
-          opt.value = ex.id;
-          opt.textContent = ex.name;
-          og.appendChild(opt);
-        }
-        exerciseSelect.appendChild(og);
-      }
+      parts.push(`</optgroup>`);
     }
+  }
+  exerciseSelect.innerHTML = parts.join('');
+}
+
     refreshExerciseOptions();
 
     // Prefill as soon as an exercise is selected
@@ -623,3 +625,4 @@ const footer = document.getElementById("footer");
 if (footer) {
   footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
 }
+
