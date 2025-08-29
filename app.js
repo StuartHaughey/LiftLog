@@ -439,7 +439,125 @@ SessionDetail(){
     }
   });
 
-  $('#finish', wrap)?.addEventListener('click', ()=>{ s.done = true; Store.save(); notice('Session finished'); Router.go('/sessions'); });
+  $('#finish', wrap)?.addEventListener('click', ()=>{
+  s.done = true;
+  Store.save();
+  showRecap(s);
+});
+
+// --- End-of-session Recap ---
+function showRecap(sess){
+  // Compute totals
+  let totalSets = 0, totalReps = 0, totalTonnage = 0;
+  const byMuscle = {};
+  for (const it of sess.items){
+    const ex = getExercise(it.exerciseId); if (!ex) continue;
+    const m = ex.muscle || 'Other';
+    if (!byMuscle[m]) byMuscle[m] = { muscle: m, sets: 0, reps: 0, tonnage: 0 };
+    for (const st of it.sets){
+      const w = Number(st.weight)||0, r = Number(st.reps)||0;
+      totalSets += 1; totalReps += r; totalTonnage += w*r;
+      byMuscle[m].sets += 1; byMuscle[m].reps += r; byMuscle[m].tonnage += w*r;
+    }
+  }
+  const byMuscleArr = Object.values(byMuscle).sort((a,b)=> a.muscle.localeCompare(b.muscle));
+
+  // Detect PBs achieved in this session (weight-only PBs)
+  const pbs = [];
+  for (const it of sess.items){
+    const ex = getExercise(it.exerciseId); if (!ex) continue;
+    // Prior best outside this session
+    let running = 0;
+    for (const sOther of Store.data.sessions){
+      if (sOther.id === sess.id) continue;
+      const itOther = sOther.items.find(x=>x.exerciseId === it.exerciseId);
+      if (!itOther) continue;
+      for (const stO of itOther.sets) running = Math.max(running, Number(stO.weight)||0);
+    }
+    // Walk this session's sets in order; any weight > running is a PB, then raise the bar
+    it.sets.forEach((st, idx) => {
+      const w = Number(st.weight)||0;
+      if (w > running){
+        pbs.push({ name: ex.name, weight: w, setIndex: idx+1 });
+        running = w;
+      }
+    });
+  }
+
+  const fmtInt = new Intl.NumberFormat('en-AU'); // adds commas for 1,000+
+  const ton = fmtInt.format(Math.round(totalTonnage)) + ' kg';
+
+  // Build overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'recap-overlay';
+  overlay.id = 'recapOverlay';
+  overlay.innerHTML = `
+    <div class="recap-card">
+      <div class="stack">
+        <div class="recap-row">
+          <h2 style="margin:0;">Session recap</h2>
+          <span class="chip">${sess.date}</span>
+        </div>
+        ${sess.notes ? `<p class="recap-muted">Notes: ${sess.notes}</p>` : ''}
+
+        <div class="card recap-grid">
+          <div class="recap-row"><span>Total sets</span><strong>${totalSets}</strong></div>
+          <div class="recap-row"><span>Total reps</span><strong>${totalReps}</strong></div>
+          <div class="recap-row"><span>Total tonnage</span><strong>${ton}</strong></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 6px;">By muscle</h3>
+          ${byMuscleArr.length ? `
+            <table role="table" aria-label="Recap by muscle">
+              <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total</th></tr></thead>
+              <tbody>
+                ${byMuscleArr.map(r => `
+                  <tr>
+                    <td><span class="chip">${r.muscle}</span></td>
+                    <td>${r.sets}</td>
+                    <td>${r.reps}</td>
+                    <td>${fmtInt.format(Math.round(r.tonnage))} kg</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          ` : `<p class="recap-muted">No lifts recorded.</p>`}
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 6px;">PBs this session</h3>
+          ${pbs.length ? `
+            <ul class="recap-list">
+              ${pbs.map(pb => `<li><strong>${pb.name}</strong> — ${pb.weight} (${pb.setIndex === 1 ? '1st' : pb.setIndex + 'th'} set)</li>`).join('')}
+            </ul>
+          ` : `<p class="recap-muted">No PBs this time — good work logging.</p>`}
+        </div>
+
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button class="btn" id="recapDone">Done</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Close → go to Sessions
+  $('#recapDone', overlay).addEventListener('click', ()=>{
+    overlay.remove();
+    notice('Session finished');
+    Router.go('/sessions');
+  });
+
+  // Click outside card to close
+  overlay.addEventListener('click', (e)=>{
+    if (e.target === overlay){
+      overlay.remove();
+      Router.go('/sessions');
+    }
+  });
+}
+
   $('#export', wrap).addEventListener('click', ()=>{ const flat=[]; for (const it of s.items){ const ex=getExercise(it.exerciseId)||{name:'(deleted)',muscle:'Other'}; for (const set of it.sets){ flat.push({ date:s.date, exercise:ex.name, muscle:ex.muscle||'Other', weight:set.weight, reps:set.reps }); } } download(toCSV(flat,['date','exercise','muscle','weight','reps']), `session_${s.date}.csv`, 'text/csv'); notice('Session CSV exported'); });
 
   return wrap;
@@ -827,6 +945,7 @@ const footer = document.getElementById("footer");
 if (footer) {
   footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
 }
+
 
 
 
