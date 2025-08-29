@@ -1,0 +1,58 @@
+name: LiftLog — AI Patch PR
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  patch:
+    # Only react to comments that start with /liftlog
+    if: startsWith(github.event.comment.body, '/liftlog')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract prompt
+          # Strip the leading "/liftlog" and any leading spaces
+        id: prompt
+        run: |
+          RAW="${{ github.event.comment.body }}"
+          CLEAN=$(echo "$RAW" | sed -E 's#^/liftlog[[:space:]]*##')
+          echo "prompt=$CLEAN" >> $GITHUB_OUTPUT
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install openai
+
+      - name: Run patcher (calls OpenAI, edits files)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PROMPT: ${{ steps.prompt.outputs.prompt }}
+        run: |
+          python .github/scripts/liftlog_patcher.py
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ github.token }}
+          commit-message: "AI patch: ${{ steps.prompt.outputs.prompt }}"
+          title: "AI patch: ${{ steps.prompt.outputs.prompt }}"
+          body: "Automated patch for: `${{ steps.prompt.outputs.prompt }}`"
+          branch: "liftlog/ai-${{ github.run_id }}"
+          base: ${{ github.event.repository.default_branch }}
+          add-paths: |
+            index.html
+            style.css
+            app.js
+            sw.js
