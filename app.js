@@ -110,7 +110,7 @@ const Views = {
     }
     render();
     $('#start', wrap).addEventListener('click', ()=>{
-      const s = { id: uid(), date: todayISO(), notes:'', done:false, items:[] };
+      const s = { id: uid(), date: todayISO(), notes:'', done:false, items:[], muscles: [] }; // muscles = user-selected filters
       Store.data.sessions.push(s); Store.save(); notice('Session started'); Router.go('/session?id='+s.id);
     });
     wrap.addEventListener('click', (e)=>{
@@ -161,32 +161,53 @@ const Views = {
           </div>
         </form>
         <div class="card stack">
-          <h3>Add exercise & set</h3>
-          <form id="add" class="stack">
-            <div class="row">
-              <div>
-                <label for="exercise">Exercise</label>
-                <select id="exercise"></select>
-              </div>
-              <div>
-                <label for="weight">Weight</label>
-                <input id="weight" type="number" step="0.5" min="0" placeholder="kg" />
-              </div>
-            </div>
-            <div class="row">
-              <div>
-                <label for="reps">Reps</label>
-                <input id="reps" type="number" step="1" min="1" placeholder="e.g. 8" />
-                <div><span class="chip" id="prefillFlag" style="display:none; margin-top:6px;">↺ repeated</span></div>
-              </div>
-              <div style="display:flex; align-items:end; gap:8px;">
-                <button class="btn primary" type="submit">Add set</button>
-                <button class="btn" type="button" id="startTimer">Start 120s timer</button>
-                <span class="chip" id="timerDisplay">120s</span>
-              </div>
-            </div>
-          </form>
+  <h3>Add exercise & set</h3>
+
+  <!-- Muscle filter row -->
+  <form id="muscleForm" class="stack">
+    <div class="row">
+      <div>
+        <label for="musclePick">Filter muscle groups (optional)</label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <select id="musclePick">
+            <option value="">— Select muscle —</option>
+            ${MUSCLES.map(m=>`<option value="${m}">${m}</option>`).join('')}
+          </select>
+          <button class="btn" type="submit">Add group</button>
         </div>
+        <div id="muscleChips" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+        <p class="muted" style="margin:6px 0 0;">If no groups are selected, all exercises are shown.</p>
+      </div>
+    </div>
+  </form>
+
+  <!-- Add set row -->
+  <form id="add" class="stack">
+    <div class="row">
+      <div>
+        <label for="exercise">Exercise</label>
+        <select id="exercise"></select>
+      </div>
+      <div>
+        <label for="weight">Weight</label>
+        <input id="weight" type="number" step="0.5" min="0" placeholder="kg" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="reps">Reps</label>
+        <input id="reps" type="number" step="1" min="1" placeholder="e.g. 8" />
+        <div><span class="chip" id="prefillFlag" style="display:none; margin-top:6px;">↺ repeated</span></div>
+      </div>
+      <div style="display:flex; align-items:end; gap:8px;">
+        <button class="btn primary" type="submit">Add set</button>
+        <button class="btn" type="button" id="startTimer">Start 120s timer</button>
+        <span class="chip" id="timerDisplay">120s</span>
+      </div>
+    </div>
+  </form>
+</div>
+
         <div id="blocks" class="stack"></div>
       </section>`;
 
@@ -275,31 +296,81 @@ const Views = {
 
     // Session logic
     const exerciseSelect = $('#exercise', wrap);
+// --- Session muscle filter state helpers ---
+if (!Array.isArray(s.muscles)) s.muscles = []; // migrate old sessions
+
+const musclePick = $('#musclePick', wrap);
+const muscleChips = $('#muscleChips', wrap);
+const muscleForm = $('#muscleForm', wrap);
+
+function renderMuscleChips(){
+  muscleChips.innerHTML = '';
+  if (!s.muscles.length) {
+    const tip = document.createElement('span');
+    tip.className = 'chip';
+    tip.textContent = 'No filters (show all)';
+    muscleChips.appendChild(tip);
+    return;
+  }
+  for (const m of s.muscles){
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `${m} <button class="btn" data-remmus="${m}" style="padding:2px 6px; font-size:.85rem; margin-left:6px;">×</button>`;
+    muscleChips.appendChild(chip);
+  }
+}
+
+muscleForm.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const m = musclePick.value;
+  if (!m) return;
+  if (!s.muscles.includes(m)) {
+    s.muscles.push(m);
+    Store.save();
+    renderMuscleChips();
+    refreshExerciseOptions(); // will now filter by s.muscles
+  }
+  musclePick.value = '';
+});
+
+muscleChips.addEventListener('click', (e)=>{
+  const m = e.target?.dataset?.remmus;
+  if (!m) return;
+  s.muscles = s.muscles.filter(x => x !== m);
+  Store.save();
+  renderMuscleChips();
+  refreshExerciseOptions();
+});
+
+renderMuscleChips();
 
     function refreshExerciseOptions(){
-      const groups = {};
-      for (const ex of Store.data.exercises) {
-        const m = ex.muscle || 'Other';
-        (groups[m] ||= []).push(ex);
-      }
-      // Sort muscles A–Z, then exercises A–Z
-      const muscles = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+  const groups = {};
+  for (const ex of Store.data.exercises) {
+    const m = ex.muscle || 'Other';
+    (groups[m] ||= []).push(ex);
+  }
+  const muscles = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
 
-      // iOS-friendly: include a placeholder
-      const parts = [`<option value="">— Select exercise —</option>`];
-      if (!muscles.length) {
-        parts.push(`<option value="" disabled>No exercises — add some first</option>`);
-      } else {
-        for (const m of muscles) {
-          parts.push(`<optgroup label="${m}">`);
-          for (const ex of groups[m].sort((a,b)=>a.name.localeCompare(b.name))) {
-            parts.push(`<option value="${ex.id}">${ex.name}</option>`);
-          }
-          parts.push(`</optgroup>`);
-        }
+  // If the session has active filters, only include those groups
+  const active = (s.muscles && s.muscles.length) ? s.muscles : muscles;
+
+  const parts = [`<option value="">— Select exercise —</option>`];
+  if (!active.length) {
+    parts.push(`<option value="" disabled>No exercises — add some first</option>`);
+  } else {
+    for (const m of active){
+      if (!groups[m]) continue;
+      parts.push(`<optgroup label="${m}">`);
+      for (const ex of groups[m].sort((a,b)=>a.name.localeCompare(b.name))) {
+        parts.push(`<option value="${ex.id}">${ex.name}</option>`);
       }
-      exerciseSelect.innerHTML = parts.join('');
+      parts.push(`</optgroup>`);
     }
+  }
+  exerciseSelect.innerHTML = parts.join('');
+}
+
     refreshExerciseOptions();
 
     // Prefill as soon as an exercise is selected
@@ -665,3 +736,4 @@ const footer = document.getElementById("footer");
 if (footer) {
   footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
 }
+
