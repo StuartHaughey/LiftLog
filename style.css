@@ -262,3 +262,236 @@ details summary { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+Stats(){
+  const wrap=document.createElement('div'); wrap.className='stack';
+  const { byExercise, byMuscle } = computeStats();
+  wrap.innerHTML = `
+  <section class="panel card stack" aria-labelledby="st-h1">
+    <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <h1 id="st-h1" class="headline" style="margin:0;">Stats</h1>
+      <div class="stack" style="grid-auto-flow: column; gap: 8px; display:grid;">
+        <button class="btn" id="exportEx">Export by exercise (CSV)</button>
+        <button class="btn" id="exportMu">Export by muscle (CSV)</button>
+      </div>
+    </div>
+
+    <!-- Row 1: existing tables -->
+    <div class="grid">
+      <div class="card" style="grid-column: span 7;">
+        <h3>By Exercise</h3>
+        <table role="table" aria-label="By exercise table">
+          <thead><tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Max Weight (kg)</th></tr></thead>
+          <tbody id="exBody">${byExercise.map(r=>`<tr><td>${r.name}</td><td><span class="chip">${r.muscle}</span></td><td>${r.sets}</td><td>${r.reps}</td><td>${r.maxWeight}</td></tr>`).join('')}</tbody>
+        </table>
+        ${byExercise.length?'' : '<p class="muted">No data yet — do a session.</p>'}
+      </div>
+      <div class="card" style="grid-column: span 5;">
+        <h3>By Muscle Group (All Time)</h3>
+        <table role="table" aria-label="By muscle table">
+          <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th></tr></thead>
+          <tbody id="muBody">${byMuscle.map(r=>`<tr><td><span class="chip">${r.muscle}</span></td><td>${r.sets}</td><td>${r.reps}</td></tr>`).join('')}</tbody>
+        </table>
+        ${byMuscle.length?'' : '<p class="muted">No data yet — do a session.</p>'}
+      </div>
+    </div>
+
+    <!-- Row 2: stacked summaries -->
+    <div class="card">
+      <h3>Last 7 days (by muscle)</h3>
+      <table role="table" aria-label="7-day summary">
+        <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total Weight</th></tr></thead>
+        <tbody id="weekBody"></tbody>
+      </table>
+      <p class="muted" id="weekEmpty" style="display:none;">No sessions in the last week.</p>
+    </div>
+
+    <div class="card">
+      <h3>Last 30 days (by muscle)</h3>
+      <table role="table" aria-label="30-day summary">
+        <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total Weight</th></tr></thead>
+        <tbody id="monthBody"></tbody>
+      </table>
+      <p class="muted" id="monthEmpty" style="display:none;">No sessions in the last 30 days.</p>
+    </div>
+  </section>`;
+
+  $('#exportEx', wrap).addEventListener('click', ()=>{
+    download(toCSV(computeStats().byExercise, ['name','muscle','sets','reps','maxWeight']), 'liftlog_stats_by_exercise.csv', 'text/csv');
+    notice('Exported by-exercise');
+  });
+  $('#exportMu', wrap).addEventListener('click', ()=>{
+    download(toCSV(computeStats().byMuscle, ['muscle','sets','reps']), 'liftlog_stats_by_muscle.csv', 'text/csv');
+    notice('Exported by-muscle');
+  });
+
+  // helpers (reuse from earlier insert near computeStats if you added them there)
+  function inLastNDays(isoDate, n){
+    if (!isoDate) return false;
+    const d = new Date(isoDate + 'T00:00:00');
+    const cutoff = new Date(); cutoff.setHours(0,0,0,0);
+    cutoff.setDate(cutoff.getDate() - (n - 1));
+    return d >= cutoff;
+  }
+  function aggregateByMuscleInLastNDays(n){
+    const by = {};
+    for (const s of Store.data.sessions){
+      if (!inLastNDays(s.date, n)) continue;
+      for (const it of s.items){
+        const ex = getExercise(it.exerciseId); if(!ex) continue;
+        const m = ex.muscle || 'Other';
+        if(!by[m]) by[m] = { muscle:m, sets:0, reps:0, tonnage:0 };
+        for (const st of it.sets){
+          const w = Number(st.weight)||0, r = Number(st.reps)||0;
+          by[m].sets += 1; by[m].reps += r; by[m].tonnage += w * r;
+        }
+      }
+    }
+    return Object.values(by).sort((a,b)=>a.muscle.localeCompare(b.muscle));
+  }
+
+  const week = aggregateByMuscleInLastNDays(7);
+  const month = aggregateByMuscleInLastNDays(30);
+  const wb = $('#weekBody', wrap), mb = $('#monthBody', wrap);
+  const we = $('#weekEmpty', wrap), me = $('#monthEmpty', wrap);
+
+  function renderRangeRows(rows, bodyEl, emptyEl){
+    bodyEl.innerHTML = rows.map(r=>`<tr>
+      <td><span class="chip">${r.muscle}</span></td>
+      <td>${r.sets}</td>
+      <td>${r.reps}</td>
+      <td>${Math.round(r.tonnage)}</td>
+    </tr>`).join('');
+    emptyEl.style.display = rows.length ? 'none' : 'block';
+  }
+  renderRangeRows(week, wb, we);
+  renderRangeRows(month, mb, me);
+
+  return wrap;
+},
+Stats(){
+  const wrap=document.createElement('div'); wrap.className='stack';
+  const { byExercise, byMuscle } = computeStats();
+  wrap.innerHTML = `
+  <section class="panel card stack" aria-labelledby="st-h1">
+    <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <h1 id="st-h1" class="headline" style="margin:0;">Stats</h1>
+      <div class="stack" style="grid-auto-flow: column; gap: 8px; display:grid;">
+        <button class="btn" id="exportEx">Export by exercise (CSV)</button>
+        <button class="btn" id="exportMu">Export by muscle (CSV)</button>
+      </div>
+    </div>
+
+    <!-- Row 1: existing tables -->
+    <div class="grid">
+      <div class="card" style="grid-column: span 7;">
+        <h3>By Exercise</h3>
+        <table role="table" aria-label="By exercise table">
+          <thead><tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Max Weight (kg)</th></tr></thead>
+          <tbody id="exBody">${byExercise.map(r=>`<tr><td>${r.name}</td><td><span class="chip">${r.muscle}</span></td><td>${r.sets}</td><td>${r.reps}</td><td>${r.maxWeight}</td></tr>`).join('')}</tbody>
+        </table>
+        ${byExercise.length?'' : '<p class="muted">No data yet — do a session.</p>'}
+      </div>
+      <div class="card" style="grid-column: span 5;">
+        <h3>By Muscle Group (All Time)</h3>
+        <table role="table" aria-label="By muscle table">
+          <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th></tr></thead>
+          <tbody id="muBody">${byMuscle.map(r=>`<tr><td><span class="chip">${r.muscle}</span></td><td>${r.sets}</td><td>${r.reps}</td></tr>`).join('')}</tbody>
+        </table>
+        ${byMuscle.length?'' : '<p class="muted">No data yet — do a session.</p>'}
+      </div>
+    </div>
+
+    <!-- Row 2: stacked summaries -->
+    <div class="card">
+      <h3>Last 7 days (by muscle)</h3>
+      <table role="table" aria-label="7-day summary">
+        <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total Weight</th></tr></thead>
+        <tbody id="weekBody"></tbody>
+      </table>
+      <p class="muted" id="weekEmpty" style="display:none;">No sessions in the last week.</p>
+    </div>
+
+    <div class="card">
+      <h3>Last 30 days (by muscle)</h3>
+      <table role="table" aria-label="30-day summary">
+        <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total Weight</th></tr></thead>
+        <tbody id="monthBody"></tbody>
+      </table>
+      <p class="muted" id="monthEmpty" style="display:none;">No sessions in the last 30 days.</p>
+    </div>
+  </section>`;
+
+  $('#exportEx', wrap).addEventListener('click', ()=>{
+    download(toCSV(computeStats().byExercise, ['name','muscle','sets','reps','maxWeight']), 'liftlog_stats_by_exercise.csv', 'text/csv');
+    notice('Exported by-exercise');
+  });
+  $('#exportMu', wrap).addEventListener('click', ()=>{
+    download(toCSV(computeStats().byMuscle, ['muscle','sets','reps']), 'liftlog_stats_by_muscle.csv', 'text/csv');
+    notice('Exported by-muscle');
+  });
+
+  // helpers (reuse from earlier insert near computeStats if you added them there)
+  function inLastNDays(isoDate, n){
+    if (!isoDate) return false;
+    const d = new Date(isoDate + 'T00:00:00');
+    const cutoff = new Date(); cutoff.setHours(0,0,0,0);
+    cutoff.setDate(cutoff.getDate() - (n - 1));
+    return d >= cutoff;
+  }
+  function aggregateByMuscleInLastNDays(n){
+    const by = {};
+    for (const s of Store.data.sessions){
+      if (!inLastNDays(s.date, n)) continue;
+      for (const it of s.items){
+        const ex = getExercise(it.exerciseId); if(!ex) continue;
+        const m = ex.muscle || 'Other';
+        if(!by[m]) by[m] = { muscle:m, sets:0, reps:0, tonnage:0 };
+        for (const st of it.sets){
+          const w = Number(st.weight)||0, r = Number(st.reps)||0;
+          by[m].sets += 1; by[m].reps += r; by[m].tonnage += w * r;
+        }
+      }
+    }
+    return Object.values(by).sort((a,b)=>a.muscle.localeCompare(b.muscle));
+  }
+
+  const week = aggregateByMuscleInLastNDays(7);
+  const month = aggregateByMuscleInLastNDays(30);
+  const wb = $('#weekBody', wrap), mb = $('#monthBody', wrap);
+  const we = $('#weekEmpty', wrap), me = $('#monthEmpty', wrap);
+
+  function renderRangeRows(rows, bodyEl, emptyEl){
+    bodyEl.innerHTML = rows.map(r=>`<tr>
+      <td><span class="chip">${r.muscle}</span></td>
+      <td>${r.sets}</td>
+      <td>${r.reps}</td>
+      <td>${Math.round(r.tonnage)}</td>
+    </tr>`).join('');
+    emptyEl.style.display = rows.length ? 'none' : 'block';
+  }
+  renderRangeRows(week, wb, we);
+  renderRangeRows(month, mb, me);
+
+  return wrap;
+},
+          
+/* Recap modal */
+.recap-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.recap-card {
+  max-width: 560px; width: min(92vw, 560px);
+  max-height: 86vh; overflow: auto;
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.45);
+  padding: 16px;
+}
+.recap-grid { display: grid; gap: 10px; }
+.recap-row { display: flex; gap: 10px; justify-content: space-between; }
+.recap-muted { color: var(--muted); }
+.recap-list { margin: 8px 0 0; padding-left: 18px; }
