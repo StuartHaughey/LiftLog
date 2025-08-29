@@ -51,6 +51,31 @@ function computeStats(){
   }
   return { byExercise: Object.values(byExercise), byMuscle: Object.values(byMuscle) };
 }
+function inLastNDays(isoDate, n){
+  if (!isoDate) return false;
+  const d = new Date(isoDate + 'T00:00:00');
+  const cutoff = new Date(); cutoff.setHours(0,0,0,0);
+  cutoff.setDate(cutoff.getDate() - (n - 1));
+  return d >= cutoff;
+}
+function aggregateByMuscleInLastNDays(n){
+  const by = {};
+  for (const s of Store.data.sessions){
+    if (!inLastNDays(s.date, n)) continue;
+    for (const it of s.items){
+      const ex = getExercise(it.exerciseId); if(!ex) continue;
+      const m = ex.muscle || 'Other';
+      if(!by[m]) by[m] = { muscle:m, sets:0, reps:0, tonnage:0 };
+      for (const st of it.sets){
+        const w = Number(st.weight)||0, r = Number(st.reps)||0;
+        by[m].sets += 1;
+        by[m].reps += r;
+        by[m].tonnage += w * r;
+      }
+    }
+  }
+  return Object.values(by).sort((a,b)=>a.muscle.localeCompare(b.muscle));
+}
 
 // Router
 const Router = {
@@ -648,6 +673,25 @@ renderMuscleChips();
           </table>
           ${byExercise.length?'' : '<p class="muted">No data yet — do a session.</p>'}
         </div>
+        <div class="grid">
+  <div class="card" style="grid-column: span 6;">
+    <h3>Last 7 days (by muscle)</h3>
+    <table role="table" aria-label="7-day summary">
+      <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total Weight</th></tr></thead>
+      <tbody id="weekBody"></tbody>
+    </table>
+    <p class="muted" id="weekEmpty" style="display:none;">No sessions in the last week.</p>
+  </div>
+  <div class="card" style="grid-column: span 6;">
+    <h3>Last 30 days (by muscle)</h3>
+    <table role="table" aria-label="30-day summary">
+      <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total Weight</th></tr></thead>
+      <tbody id="monthBody"></tbody>
+    </table>
+    <p class="muted" id="monthEmpty" style="display:none;">No sessions in the last 30 days.</p>
+  </div>
+</div>
+
         <div class="card" style="grid-column: span 5;">
           <h3>By Muscle Group</h3>
           <table role="table" aria-label="By muscle table">
@@ -666,6 +710,24 @@ renderMuscleChips();
       download(toCSV(computeStats().byMuscle, ['muscle','sets','reps']), 'liftlog_stats_by_muscle.csv', 'text/csv');
       notice('Exported by-muscle');
     });
+    const week = aggregateByMuscleInLastNDays(7);
+const month = aggregateByMuscleInLastNDays(30);
+
+const wb = $('#weekBody', wrap), mb = $('#monthBody', wrap);
+const we = $('#weekEmpty', wrap), me = $('#monthEmpty', wrap);
+
+function renderRangeRows(rows, bodyEl, emptyEl){
+  bodyEl.innerHTML = rows.map(r=>`<tr>
+    <td><span class="chip">${r.muscle}</span></td>
+    <td>${r.sets}</td>
+    <td>${r.reps}</td>
+    <td>${Math.round(r.tonnage)}</td>
+  </tr>`).join('');
+  emptyEl.style.display = rows.length ? 'none' : 'block';
+}
+renderRangeRows(week, wb, we);
+renderRangeRows(month, mb, me);
+
     return wrap;
   },
 
@@ -683,12 +745,99 @@ sessions: [{ id, date, notes, done, items: [ { exerciseId, sets: [ { weight, rep
       </details>
       <div class="card"><button class="btn" id="reset">Reset all data</button></div>
       <div class="card"><h3>Install on mobile</h3><p class="muted">Android Chrome/Edge: use the <em>Install App</em> button in the top nav when eligible. iPhone Safari: Share → <strong>Add to Home Screen</strong>.</p></div>
+      <div class="card stack">
+  <h3>Import CSV</h3>
+  <p class="muted">Import data previously exported from LiftLog.</p>
+  <div class="stack" style="grid-auto-flow: column; gap:8px; display:grid;">
+    <label class="btn" for="importExercises">Import Exercises CSV</label>
+    <input type="file" id="importExercises" accept=".csv,text/csv" style="display:none" />
+    <label class="btn" for="importSessions">Import Sessions CSV</label>
+    <input type="file" id="importSessions" accept=".csv,text/csv" style="display:none" />
+  </div>
+  <p class="muted" style="margin:0;">Exercises CSV headers: <code>id,name,muscle</code><br/>Sessions CSV headers: <code>date,sessionId,exercise,muscle,weight,reps</code></p>
+</div>
+
     </section>`;
     $('#reset', wrap).addEventListener('click', ()=>{
       if(confirm('This will erase everything.')){
         Store.reset(); notice('Data cleared'); Router.go('/exercises');
       }
     });
+    function parseCSV(text){
+  // Simple tolerant parser for our exports (handles quoted cells)
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines.shift().split(',').map(h=>JSON.parse(JSON.stringify(h).trim().replace(/^\uFEFF/,'')).replace(/^"|"$/g,''));
+  const rows = [];
+  for (const line of lines){
+    // Split by commas but respect quotes
+    const cells = [];
+    let cur = '', inQ = false;
+    for (let i=0;i<line.length;i++){
+      const ch = line[i];
+      if (ch === '"' && line[i+1] === '"') { cur+='"'; i++; continue; }
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ){ cells.push(cur); cur=''; continue; }
+      cur += ch;
+    }
+    cells.push(cur);
+    const obj = {};
+    headers.forEach((h,idx)=> obj[h] = cells[idx] ?? '');
+    rows.push(obj);
+  }
+  return { headers, rows };
+}
+
+$('#importExercises', wrap).addEventListener('change', async (e)=>{
+  const file = e.target.files?.[0]; if(!file) return;
+  const text = await file.text();
+  const { headers, rows } = parseCSV(text);
+  const needed = ['id','name','muscle'];
+  if (!needed.every(h => headers.includes(h))) return notice('Wrong headers. Need id,name,muscle');
+  const haveIds = new Set(Store.data.exercises.map(e=>e.id));
+  let added = 0, updated = 0;
+  for (const r of rows){
+    const id = r.id || uid();
+    const name = (r.name||'').trim();
+    const muscle = (r.muscle||'Other').trim() || 'Other';
+    if (!name) continue;
+    const existing = Store.data.exercises.find(e=>e.id===id || e.name.toLowerCase()===name.toLowerCase());
+    if (existing){ existing.name = name; existing.muscle = muscle; updated++; }
+    else { Store.data.exercises.push({ id, name, muscle }); added++; }
+  }
+  Store.save();
+  notice(`Exercises imported: +${added}, updated ${updated}`);
+  e.target.value = '';
+});
+
+$('#importSessions', wrap).addEventListener('change', async (e)=>{
+  const file = e.target.files?.[0]; if(!file) return;
+  const text = await file.text();
+  const { headers, rows } = parseCSV(text);
+  const needed = ['date','sessionId','exercise','muscle','weight','reps'];
+  if (!needed.every(h => headers.includes(h))) return notice('Wrong headers for sessions CSV');
+  // Group rows by sessionId + date
+  const bySess = new Map();
+  for (const r of rows){
+    const sid = r.sessionId || `sess_${r.date}_${uid()}`;
+    const k = sid + '|' + (r.date||'');
+    if (!bySess.has(k)) bySess.set(k, { id: sid, date: r.date||todayISO(), notes:'', done:true, items:[] });
+    const group = bySess.get(k);
+    // Ensure exercise exists / link by name
+    const name = (r.exercise||'').trim(); const muscle = (r.muscle||'Other').trim() || 'Other';
+    if (!name) continue;
+    let ex = Store.data.exercises.find(e=>e.name.toLowerCase()===name.toLowerCase());
+    if (!ex){ ex = { id: uid(), name, muscle }; Store.data.exercises.push(ex); }
+    let item = group.items.find(i=>i.exerciseId===ex.id);
+    if (!item){ item = { exerciseId: ex.id, sets: [] }; group.items.push(item); }
+    item.sets.push({ weight: Number(r.weight)||0, reps: Number(r.reps)||0 });
+  }
+  const imported = Array.from(bySess.values());
+  Store.data.sessions.push(...imported);
+  Store.save();
+  notice(`Sessions imported: ${imported.length}`);
+  e.target.value = '';
+});
+
     return wrap;
   },
 
@@ -736,4 +885,5 @@ const footer = document.getElementById("footer");
 if (footer) {
   footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
 }
+
 
