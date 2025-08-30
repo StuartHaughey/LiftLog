@@ -380,26 +380,39 @@ SessionDetail(){
       `;
 
       const body = `
-        <div class="stack" style="margin-top:8px;">
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="btn" data-addset="${it.exerciseId}">Add set</button>
-            <button class="btn danger" data-delblock="${it.exerciseId}">Remove exercise</button>
-          </div>
-          <table role="table" aria-label="Sets table">
-            <thead><tr><th>#</th><th>Weight (kg)</th><th>Reps</th><th>Actions</th></tr></thead>
-            <tbody>
-              ${it.sets.map((st,idx)=>`
-                <tr>
-                  <td>${idx+1}</td>
-                  <td>${st.weight}</td>
-                  <td>${st.reps}</td>
-                  <td><button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+  <div class="stack" style="margin-top:8px;">
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn" data-addset="${it.exerciseId}">Add set</button>
+      <button class="btn danger" data-delblock="${it.exerciseId}">Remove exercise</button>
+    </div>
+
+    <!-- Desktop/tablet table -->
+    <table class="sets-table" role="table" aria-label="Sets table">
+      <thead><tr><th>#</th><th>Weight (kg)</th><th>Reps</th><th>Actions</th></tr></thead>
+      <tbody>
+        ${it.sets.map((st,idx)=>`
+          <tr>
+            <td>${idx+1}</td>
+            <td>${st.weight}</td>
+            <td>${st.reps}</td>
+            <td><button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <!-- Mobile cards -->
+    <div class="sets-cards">
+      ${it.sets.map((st,idx)=>`
+        <div class="set-card">
+          <div>Set ${idx+1} — ${st.weight} × ${st.reps}</div>
+          <button class="btn danger" data-dels="${it.exerciseId}:${idx}">✕</button>
         </div>
-      `;
+      `).join('')}
+    </div>
+  </div>
+`;
+
 
       details.innerHTML = header + body;
       blocks.appendChild(details);
@@ -960,6 +973,7 @@ const footer = document.getElementById("footer");
 if (footer) {
   footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
 }
+
 
 
 
