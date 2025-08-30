@@ -505,3 +505,22 @@ Stats(){
   background: rgba(255,255,255,.06);
   line-height: 1;
 }
+/* Compact set cards on small screens */
+@media (max-width: 560px) {
+  .sets-table { display: none; } /* hide the table */
+  .sets-cards { display: grid; gap: 6px; }
+  .set-card {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.04);
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .set-card small { color: var(--muted); }
+}
+@media (min-width: 561px) {
+  .sets-cards { display: none; } /* hide cards on desktop/tablet */
+}
