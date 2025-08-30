@@ -159,18 +159,20 @@ const Views = {
   },
 
 SessionDetail(){
-  const { q } = parseHash(); const s = getSession(q.id);
+  const { q } = parseHash();
+  const s = getSession(q.id);
   const wrap = document.createElement('div');
-  if(!s){ wrap.innerHTML = `<div class="panel card" style="padding:18px;">Session not found. <a href="#/sessions">Back to sessions</a>.</div>`; return wrap; }
+  if (!s){
+    wrap.innerHTML = `<div class="panel card" style="padding:18px;">Session not found. <a href="#/sessions">Back to sessions</a>.</div>`;
+    return wrap;
+  }
   wrap.className = 'stack';
-  if (!s.collapsed || typeof s.collapsed !== 'object') {
-  s.collapsed = {}; // remember per-exercise collapsed state
-}
 
-
-  // migrate old sessions
+  // Migrations / defaults
   if (!Array.isArray(s.muscles)) s.muscles = [];
+  if (!s.collapsed || typeof s.collapsed !== 'object') s.collapsed = {};
 
+  // UI
   wrap.innerHTML = `
     <section class="panel card stack" aria-labelledby="sd-h1">
       <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
@@ -246,35 +248,46 @@ SessionDetail(){
       <div id="blocks" class="stack"></div>
     </section>`;
 
-  // Timer
+  // ===== Timer =====
   let tLeft = 120; let tId = null; const tDisp = $('#timerDisplay', wrap);
-  function tick(){ tLeft -= 1; if(tLeft < 0){ clearInterval(tId); tId=null; tLeft=0; onTimerEnd(); } renderTimer(); }
   function renderTimer(){ tDisp.textContent = tLeft + 's'; }
+  function tick(){ tLeft -= 1; if (tLeft < 0){ clearInterval(tId); tId=null; tLeft=0; onTimerEnd(); } renderTimer(); }
   function startTimer(){ if(tId) clearInterval(tId); tLeft = 120; renderTimer(); tId = setInterval(tick, 1000); toastTimer('Timer started: 120s'); }
-  function stopTimer(){ if(tId) { clearInterval(tId); tId=null; toastTimer('Timer stopped'); } }
+  function stopTimer(){ if(tId){ clearInterval(tId); tId=null; toastTimer('Timer stopped'); } }
   function onTimerEnd(){ toastTimer('Rest done — lift!'); try{ navigator.vibrate?.(200); }catch{} beep(); }
   function toastTimer(msg){ const el = $('#timerToast'); el.textContent = msg; el.classList.add('show'); setTimeout(()=> el.classList.remove('show'), 1800); }
   function beep(){ const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent); if (isiOS) return; try{ const ctx = new (window.AudioContext||window.webkitAudioContext)(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 880; g.gain.value = 0.05; o.start(); setTimeout(()=>{ o.stop(); ctx.close(); }, 300); }catch{} }
+  $('#startTimer', wrap).addEventListener('click', startTimer);
 
-  // Prefill helpers
-  function ensurePrefillFlag(){ let flag = $('#prefillFlag', wrap); if (!flag) { const repsInput = $('#reps', wrap); const holder = document.createElement('div'); holder.style.marginTop = '6px'; flag = document.createElement('span'); flag.id = 'prefillFlag'; flag.className = 'chip'; flag.style.display = 'none'; flag.textContent = '↺ repeated'; holder.appendChild(flag); repsInput.parentElement.appendChild(holder); } return flag; }
-  function findLastSetForExercise(exerciseId, currentSession) {
+  // ===== Prefill helpers =====
+  function ensurePrefillFlag(){
+    let flag = $('#prefillFlag', wrap);
+    if (!flag){
+      const repsInput = $('#reps', wrap);
+      const holder = document.createElement('div'); holder.style.marginTop = '6px';
+      flag = document.createElement('span'); flag.id='prefillFlag'; flag.className='chip'; flag.style.display='none'; flag.textContent='↺ repeated';
+      holder.appendChild(flag); repsInput.parentElement.appendChild(holder);
+    }
+    return flag;
+  }
+  function findLastSetForExercise(exerciseId, currentSession){
     const itemNow = currentSession.items.find(i => i.exerciseId === exerciseId);
     if (itemNow && itemNow.sets.length) return itemNow.sets[itemNow.sets.length - 1];
     const sessions = [...Store.data.sessions].filter(x => x.id !== currentSession.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    for (const sess of sessions) { const it = sess.items.find(i => i.exerciseId === exerciseId); if (it && it.sets.length) return it.sets[it.sets.length - 1]; }
+    for (const sess of sessions){
+      const it = sess.items.find(i => i.exerciseId === exerciseId);
+      if (it && it.sets.length) return it.sets[it.sets.length - 1];
+    }
     return null;
   }
-  function prefillFromLast(exerciseId){
-    const last = findLastSetForExercise(exerciseId, s);
-    const wEl = $('#weight', wrap); const rEl = $('#reps', wrap); const flag = ensurePrefillFlag();
-    if (last){ wEl.value = Number(last.weight)||0; rEl.value = Number(last.reps)||1; flag.style.display = 'inline-block'; }
-    else { flag.style.display = 'none'; }
+  function prefillFromLast(exId){
+    const last = findLastSetForExercise(exId, s);
+    const wEl = $('#weight', wrap), rEl = $('#reps', wrap), flag = ensurePrefillFlag();
+    if (last){ wEl.value = Number(last.weight)||0; rEl.value = Number(last.reps)||1; flag.style.display='inline-block'; }
+    else { flag.style.display='none'; }
   }
 
-  $('#startTimer', wrap).addEventListener('click', startTimer);
-
-  // --- Muscle filter & exercise dropdown
+  // ===== Muscle filter + exercise options =====
   const exerciseSelect = $('#exercise', wrap);
   const musclePick   = $('#musclePick', wrap);
   const muscleChips  = $('#muscleChips', wrap);
@@ -282,47 +295,29 @@ SessionDetail(){
 
   function renderMuscleChips(){
     muscleChips.innerHTML = '';
-    if (!s.muscles.length) {
-      const tip = document.createElement('span'); tip.className = 'chip'; tip.textContent = 'No filters (show all)';
-      muscleChips.appendChild(tip);
-      return;
+    if (!s.muscles.length){
+      const tip = document.createElement('span'); tip.className='chip'; tip.textContent='No filters (show all)';
+      muscleChips.appendChild(tip); return;
     }
     for (const m of s.muscles){
-      const chip = document.createElement('span'); chip.className = 'chip';
+      const chip = document.createElement('span'); chip.className='chip';
       chip.innerHTML = `${m} <button class="btn" data-remmus="${m}" style="padding:2px 6px; font-size:.85rem; margin-left:6px;">×</button>`;
       muscleChips.appendChild(chip);
     }
   }
 
-  muscleForm.addEventListener('submit', (e)=>{
-    e.preventDefault();
-    const m = musclePick.value;
-    if (!m) return;
-    if (!s.muscles.includes(m)) { s.muscles.push(m); Store.save(); renderMuscleChips(); refreshExerciseOptions(); }
-    musclePick.value = '';
-  });
-
-  muscleChips.addEventListener('click', (e)=>{
-    const m = e.target?.dataset?.remmus;
-    if (!m) return;
-    s.muscles = s.muscles.filter(x => x !== m); Store.save(); renderMuscleChips(); refreshExerciseOptions();
-  });
-
   function refreshExerciseOptions(){
-    // Build groups from all exercises
     const groups = {};
     for (const ex of Store.data.exercises){
       const m = ex.muscle || 'Other';
       (groups[m] ||= []).push(ex);
     }
-    // Sort muscles A–Z
     const allMuscles = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
-    // Use active filters if any
     const active = (s.muscles && s.muscles.length) ? s.muscles : allMuscles;
 
     const parts = [`<option value="">— Select exercise —</option>`];
     for (const m of active){
-      if (!groups[m]) continue; // ignore filters with no exercises
+      if (!groups[m]) continue;
       parts.push(`<optgroup label="${m}">`);
       for (const ex of groups[m].sort((a,b)=>a.name.localeCompare(b.name))){
         parts.push(`<option value="${ex.id}">${ex.name}</option>`);
@@ -333,133 +328,125 @@ SessionDetail(){
     exerciseSelect.innerHTML = parts.join('');
   }
 
+  muscleForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const m = musclePick.value;
+    if (!m) return;
+    if (!s.muscles.includes(m)){ s.muscles.push(m); Store.save(); renderMuscleChips(); refreshExerciseOptions(); }
+    musclePick.value = '';
+  });
+  muscleChips.addEventListener('click', (e)=>{
+    const m = e.target?.dataset?.remmus;
+    if (!m) return;
+    s.muscles = s.muscles.filter(x => x !== m); Store.save(); renderMuscleChips(); refreshExerciseOptions();
+  });
+
   renderMuscleChips();
   refreshExerciseOptions();
 
-  // Prefill when exercise changes
   exerciseSelect.addEventListener('change', ()=>{
     const exId = exerciseSelect.value;
     if (exId) prefillFromLast(exId);
+    // focus weight first (you said you type there), switch to reps if you prefer
+    $('#weight', wrap).focus();
   });
 
+  // ===== Blocks (collapsible) =====
   const blocks = $('#blocks', wrap);
-  function priorMaxWeightOtherSessions(exerciseId, currentSessionId){
-    let max = 0;
-    for (const sess of Store.data.sessions){
-      if (sess.id === currentSessionId) continue;
-      const it = sess.items.find(i => i.exerciseId === exerciseId);
-      if (!it) continue;
-      for (const st of it.sets) max = Math.max(max, Number(st.weight)||0);
-    }
-    return max;
-  }
 
   function renderBlocks(){
-    blocks.innerHTML='';
+    blocks.innerHTML = '';
     for (const it of s.items){
-      const ex=getExercise(it.exerciseId)||{name:'(deleted)', muscle:'Other'};
-      const div=document.createElement('div'); div.className='card stack';
+      const ex = getExercise(it.exerciseId) || { name:'(deleted)', muscle:'Other' };
+      const max = Math.max(0, ...it.sets.map(x => Number(x.weight)||0));
+      const totalReps = it.sets.reduce((t,x)=> t + (Number(x.reps)||0), 0);
 
-      let runningPB = priorMaxWeightOtherSessions(it.exerciseId, s.id);
-      const max=Math.max(0,...it.sets.map(x=>Number(x.weight)||0));
-      const totalReps=it.sets.reduce((t,x)=>t+(Number(x.reps)||0),0);
+      const isCollapsed = !!s.collapsed[it.exerciseId];
+      const details = document.createElement('details');
+      details.className = 'card stack ex-block';
+      details.dataset.ex = it.exerciseId;
+      if (!isCollapsed) details.setAttribute('open','');
 
-      div.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-        <div>
-          <strong>${ex.name}</strong> <span class="chip">${ex.muscle}</span>
-          <span class="muted" style="margin-left:8px;">${it.sets.length} sets • ${totalReps} reps • max ${max}kg</span>
+      const header = `
+        <summary style="list-style:none; cursor:pointer;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+            <div>
+              <strong>${ex.name}</strong> <span class="chip">${ex.muscle}</span>
+              <span class="muted" style="margin-left:8px;">${it.sets.length} sets • ${totalReps} reps • max ${max}kg</span>
+            </div>
+            <div class="muted" aria-hidden="true">${isCollapsed ? '▶' : '▼'}</div>
+          </div>
+        </summary>
+      `;
+
+      const body = `
+        <div class="stack" style="margin-top:8px;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn" data-addset="${it.exerciseId}">Add set</button>
+            <button class="btn danger" data-delblock="${it.exerciseId}">Remove exercise</button>
+          </div>
+          <table role="table" aria-label="Sets table">
+            <thead><tr><th>#</th><th>Weight (kg)</th><th>Reps</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${it.sets.map((st,idx)=>`
+                <tr>
+                  <td>${idx+1}</td>
+                  <td>${st.weight}</td>
+                  <td>${st.reps}</td>
+                  <td><button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
         </div>
-        <div>
-          <button class="btn" data-addset="${it.exerciseId}">Add set</button>
-          <button class="btn danger" data-delblock="${it.exerciseId}">Remove exercise</button>
-        </div>
-      </div>
-      <table role="table" aria-label="Sets table">
-        <thead><tr><th>#</th><th>Weight (kg)</th><th>Reps</th><th>Actions</th></tr></thead>
-        <tbody>
-          ${it.sets.map((st,idx)=>{
-            const w = Number(st.weight)||0;
-            const isPB = w > runningPB; if (isPB) runningPB = w;
-            const pbChip = isPB ? `<span class="chip pb" style="margin-left:6px;">PB</span>` : '';
-            return `<tr>
-              <td>${idx+1}</td>
-              <td>${w}${pbChip}</td>
-              <td>${st.reps}</td>
-              <td><button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button></td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>`;
-      blocks.appendChild(div);
+      `;
+
+      details.innerHTML = header + body;
+      blocks.appendChild(details);
     }
   }
-  function renderBlocks(){
-  blocks.innerHTML='';
+  renderBlocks();
 
-  for (const it of s.items){
-    const ex = getExercise(it.exerciseId) || { name:'(deleted)', muscle:'Other' };
+  // Persist collapsed/open per exercise
+  blocks.addEventListener('toggle', (e)=>{
+    const el = e.target;
+    if (el.tagName !== 'DETAILS') return;
+    const exId = el.dataset.ex;
+    if (!exId) return;
+    s.collapsed[exId] = !el.open; // true if collapsed
+    Store.save();
+    // update chevron in summary
+    const chevron = el.querySelector('summary div:last-child');
+    if (chevron) chevron.textContent = el.open ? '▼' : '▶';
+  });
 
-    // stats
-    const max = Math.max(0, ...it.sets.map(x => Number(x.weight) || 0));
-    const totalReps = it.sets.reduce((t,x)=> t + (Number(x.reps)||0), 0);
+  // ===== Meta, Add, Export, Finish =====
+  $('#meta', wrap).addEventListener('input', ()=>{
+    s.date = $('#date', wrap).value || s.date;
+    s.notes = $('#notes', wrap).value || '';
+    Store.save();
+  });
 
-    // collapsed/open state
-    const isCollapsed = !!s.collapsed[it.exerciseId];
-    const details = document.createElement('details');
-    details.className = 'card stack ex-block';
-    details.dataset.ex = it.exerciseId;
-    if (!isCollapsed) details.setAttribute('open','');
+  $('#add', wrap).addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const exId = exerciseSelect.value; if(!exId) return notice('Pick an exercise');
+    const weight = Number($('#weight', wrap).value);
+    const reps = Number($('#reps', wrap).value);
+    if(!Number.isFinite(weight) || weight < 0) return notice('Enter weight');
+    if(!Number.isInteger(reps) || reps <= 0) return notice('Enter reps');
 
-    // header (summary) — click to toggle
-    const header = `
-      <summary style="list-style:none; cursor:pointer;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-          <div>
-            <strong>${ex.name}</strong>
-            <span class="chip">${ex.muscle}</span>
-            <span class="muted" style="margin-left:8px;">
-              ${it.sets.length} sets • ${totalReps} reps • max ${max}kg
-            </span>
-          </div>
-          <div class="muted" aria-hidden="true">${isCollapsed ? '▶' : '▼'}</div>
-        </div>
-      </summary>
-    `;
+    const item = upsertSessionItem(s, exId);
+    item.sets.push({ weight, reps });
+    Store.save();
 
-    // body (only visible when open)
-    const body = `
-      <div class="stack" style="margin-top:8px;">
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn" data-addset="${it.exerciseId}">Add set</button>
-          <button class="btn danger" data-delblock="${it.exerciseId}">Remove exercise</button>
-        </div>
-        <table role="table" aria-label="Sets table">
-          <thead>
-            <tr><th>#</th><th>Weight (kg)</th><th>Reps</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            ${it.sets.map((st,idx)=>`
-              <tr>
-                <td>${idx+1}</td>
-                <td>${st.weight}</td>
-                <td>${st.reps}</td>
-                <td><button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    details.innerHTML = header + body;
-    blocks.appendChild(details);
-  }
-}
+    // clear inputs, redraw, notify, timer, prefill next
+    $('#weight', wrap).value=''; $('#reps', wrap).value='';
+    renderBlocks(); notice('Set added'); startTimer(); prefillFromLast(exId);
+  });
 
   blocks.addEventListener('click', (e)=>{
     const addId = e.target?.dataset?.addset;
-    if(addId){
+    if (addId){
       const w = Number(prompt('Weight (kg)','0'));
       const r = Number(prompt('Reps','8'));
       if(Number.isFinite(w) && Number.isFinite(r) && r>0){
@@ -467,25 +454,15 @@ SessionDetail(){
         Store.save(); renderBlocks(); notice('Set added'); startTimer();
       }
     }
-    // Remember collapsed/open per exercise
-blocks.addEventListener('toggle', (e)=>{
-  const el = e.target;
-  if (el.tagName !== 'DETAILS') return;
-  const exId = el.dataset.ex;
-  if (!exId) return;
-  s.collapsed = s.collapsed || {};
-  s.collapsed[exId] = !el.open; // store "collapsed?"
-  Store.save();
-});
-
     const delBlock = e.target?.dataset?.delblock;
-    if(delBlock){
+    if (delBlock){
       if(confirm('Remove this exercise from session?')){
-        s.items = s.items.filter(i=>i.exerciseId!==delBlock); Store.save(); renderBlocks(); notice('Exercise removed');
+        s.items = s.items.filter(i=>i.exerciseId!==delBlock);
+        Store.save(); renderBlocks(); notice('Exercise removed');
       }
     }
     const delSet = e.target?.dataset?.dels;
-    if(delSet){
+    if (delSet){
       const [exId, idxStr] = delSet.split(':'); const idx = Number(idxStr);
       const item = s.items.find(i=>i.exerciseId===exId);
       if(item && item.sets[idx]){ item.sets.splice(idx,1); Store.save(); renderBlocks(); notice('Set deleted'); }
@@ -493,128 +470,113 @@ blocks.addEventListener('toggle', (e)=>{
   });
 
   $('#finish', wrap)?.addEventListener('click', ()=>{
-  s.done = true;
-  Store.save();
-  showRecap(s);
-});
+    s.done = true; Store.save(); showRecap(s);
+  });
 
-// --- End-of-session Recap ---
-function showRecap(sess){
-  // Compute totals
-  let totalSets = 0, totalReps = 0, totalTonnage = 0;
-  const byMuscle = {};
-  for (const it of sess.items){
-    const ex = getExercise(it.exerciseId); if (!ex) continue;
-    const m = ex.muscle || 'Other';
-    if (!byMuscle[m]) byMuscle[m] = { muscle: m, sets: 0, reps: 0, tonnage: 0 };
-    for (const st of it.sets){
-      const w = Number(st.weight)||0, r = Number(st.reps)||0;
-      totalSets += 1; totalReps += r; totalTonnage += w*r;
-      byMuscle[m].sets += 1; byMuscle[m].reps += r; byMuscle[m].tonnage += w*r;
-    }
-  }
-  const byMuscleArr = Object.values(byMuscle).sort((a,b)=> a.muscle.localeCompare(b.muscle));
-
-  // Detect PBs achieved in this session (weight-only PBs)
-  const pbs = [];
-  for (const it of sess.items){
-    const ex = getExercise(it.exerciseId); if (!ex) continue;
-    // Prior best outside this session
-    let running = 0;
-    for (const sOther of Store.data.sessions){
-      if (sOther.id === sess.id) continue;
-      const itOther = sOther.items.find(x=>x.exerciseId === it.exerciseId);
-      if (!itOther) continue;
-      for (const stO of itOther.sets) running = Math.max(running, Number(stO.weight)||0);
-    }
-    // Walk this session's sets in order; any weight > running is a PB, then raise the bar
-    it.sets.forEach((st, idx) => {
-      const w = Number(st.weight)||0;
-      if (w > running){
-        pbs.push({ name: ex.name, weight: w, setIndex: idx+1 });
-        running = w;
+  $('#export', wrap).addEventListener('click', ()=>{
+    const flat=[]; for (const it of s.items){
+      const ex=getExercise(it.exerciseId)||{name:'(deleted)',muscle:'Other'};
+      for (const set of it.sets){
+        flat.push({ date:s.date, exercise:ex.name, muscle:ex.muscle||'Other', weight:set.weight, reps:set.reps });
       }
-    });
-  }
+    }
+    download(toCSV(flat,['date','exercise','muscle','weight','reps']), `session_${s.date}.csv`, 'text/csv');
+    notice('Session CSV exported');
+  });
 
-  const fmtInt = new Intl.NumberFormat('en-AU'); // adds commas for 1,000+
-  const ton = fmtInt.format(Math.round(totalTonnage)) + ' kg';
+  // ===== Recap modal (as used by Finish) =====
+  function showRecap(sess){
+    let totalSets=0,totalReps=0,totalTonnage=0;
+    const byMuscle={};
+    for (const it of sess.items){
+      const ex=getExercise(it.exerciseId); if(!ex) continue;
+      const m=ex.muscle||'Other';
+      if(!byMuscle[m]) byMuscle[m]={muscle:m,sets:0,reps:0,tonnage:0};
+      for(const st of it.sets){
+        const w=Number(st.weight)||0, r=Number(st.reps)||0;
+        totalSets+=1; totalReps+=r; totalTonnage+=w*r;
+        byMuscle[m].sets+=1; byMuscle[m].reps+=r; byMuscle[m].tonnage+=w*r;
+      }
+    }
+    const byMuscleArr = Object.values(byMuscle).sort((a,b)=>a.muscle.localeCompare(b.muscle));
+    const pbs=[];
+    for(const it of sess.items){
+      const ex=getExercise(it.exerciseId); if(!ex) continue;
+      let running=0;
+      for(const other of Store.data.sessions){
+        if(other.id===sess.id) continue;
+        const itO=other.items.find(x=>x.exerciseId===it.exerciseId);
+        if(!itO) continue;
+        for(const stO of itO.sets) running=Math.max(running, Number(stO.weight)||0);
+      }
+      it.sets.forEach((st,idx)=>{
+        const w=Number(st.weight)||0;
+        if(w>running){ pbs.push({name:ex.name, weight:w, setIndex:idx+1}); running=w; }
+      });
+    }
+    const fmtInt = new Intl.NumberFormat('en-AU');
+    const ton = fmtInt.format(Math.round(totalTonnage)) + ' kg';
 
-  // Build overlay
-  const overlay = document.createElement('div');
-  overlay.className = 'recap-overlay';
-  overlay.id = 'recapOverlay';
-  overlay.innerHTML = `
-    <div class="recap-card">
-      <div class="stack">
-        <div class="recap-row">
-          <h2 style="margin:0;">Session recap</h2>
-          <span class="chip">${sess.date}</span>
-        </div>
-        ${sess.notes ? `<p class="recap-muted">Notes: ${sess.notes}</p>` : ''}
+    const overlay=document.createElement('div'); overlay.className='recap-overlay'; overlay.id='recapOverlay';
+    overlay.innerHTML = `
+      <div class="recap-card">
+        <div class="stack">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 style="margin:0;">Session recap</h2>
+            <span class="chip">${sess.date}</span>
+          </div>
+          ${sess.notes ? `<p class="recap-muted">Notes: ${sess.notes}</p>` : ''}
 
-        <div class="card recap-grid">
-          <div class="recap-row"><span>Total sets</span><strong>${totalSets}</strong></div>
-          <div class="recap-row"><span>Total reps</span><strong>${totalReps}</strong></div>
-          <div class="recap-row"><span>Total tonnage</span><strong>${ton}</strong></div>
-        </div>
+          <div class="card recap-grid">
+            <div class="recap-row"><span>Total sets</span><strong>${totalSets}</strong></div>
+            <div class="recap-row"><span>Total reps</span><strong>${totalReps}</strong></div>
+            <div class="recap-row"><span>Total tonnage</span><strong>${ton}</strong></div>
+          </div>
 
-        <div class="card">
-          <h3 style="margin:0 0 6px;">By muscle</h3>
-          ${byMuscleArr.length ? `
-            <table role="table" aria-label="Recap by muscle">
-              <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total</th></tr></thead>
-              <tbody>
-                ${byMuscleArr.map(r => `
-                  <tr>
-                    <td><span class="chip">${r.muscle}</span></td>
-                    <td>${r.sets}</td>
-                    <td>${r.reps}</td>
-                    <td>${fmtInt.format(Math.round(r.tonnage))} kg</td>
-                  </tr>`).join('')}
-              </tbody>
-            </table>
-          ` : `<p class="recap-muted">No lifts recorded.</p>`}
-        </div>
+          <div class="card">
+            <h3 style="margin:0 0 6px;">By muscle</h3>
+            ${byMuscleArr.length ? `
+              <table role="table" aria-label="Recap by muscle">
+                <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total</th></tr></thead>
+                <tbody>
+                  ${byMuscleArr.map(r=>`
+                    <tr>
+                      <td><span class="chip">${r.muscle}</span></td>
+                      <td>${r.sets}</td>
+                      <td>${r.reps}</td>
+                      <td>${fmtInt.format(Math.round(r.tonnage))} kg</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            ` : `<p class="recap-muted">No lifts recorded.</p>`}
+          </div>
 
-        <div class="card">
-          <h3 style="margin:0 0 6px;">PBs this session</h3>
-          ${pbs.length ? `
-            <ul class="recap-list">
-              ${pbs.map(pb => `<li><strong>${pb.name}</strong> — ${pb.weight} (${pb.setIndex === 1 ? '1st' : pb.setIndex + 'th'} set)</li>`).join('')}
-            </ul>
-          ` : `<p class="recap-muted">No PBs this time — good work logging.</p>`}
-        </div>
+          <div class="card">
+            <h3 style="margin:0 0 6px;">PBs this session</h3>
+            ${pbs.length ? `
+              <ul class="recap-list">
+                ${pbs.map(pb=>`<li><strong>${pb.name}</strong> — ${pb.weight} (${pb.setIndex===1?'1st':pb.setIndex+'th'} set)</li>`).join('')}
+              </ul>
+            ` : `<p class="recap-muted">No PBs this time — good work logging.</p>`}
+          </div>
 
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
-          <button class="btn" id="recapDone">Done</button>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn" id="recapDone">Done</button>
+          </div>
         </div>
       </div>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-
-  // Close → go to Sessions
-  $('#recapDone', overlay).addEventListener('click', ()=>{
-    overlay.remove();
-    notice('Session finished');
-    Router.go('/sessions');
-  });
-
-  // Click outside card to close
-  overlay.addEventListener('click', (e)=>{
-    if (e.target === overlay){
-      overlay.remove();
-      Router.go('/sessions');
-    }
-  });
-}
-
-  $('#export', wrap).addEventListener('click', ()=>{ const flat=[]; for (const it of s.items){ const ex=getExercise(it.exerciseId)||{name:'(deleted)',muscle:'Other'}; for (const set of it.sets){ flat.push({ date:s.date, exercise:ex.name, muscle:ex.muscle||'Other', weight:set.weight, reps:set.reps }); } } download(toCSV(flat,['date','exercise','muscle','weight','reps']), `session_${s.date}.csv`, 'text/csv'); notice('Session CSV exported'); });
+    `;
+    document.body.appendChild(overlay);
+    $('#recapDone', overlay).addEventListener('click', ()=>{
+      overlay.remove(); notice('Session finished'); Router.go('/sessions');
+    });
+    overlay.addEventListener('click',(e)=>{ if(e.target===overlay){ overlay.remove(); Router.go('/sessions'); }});
+  }
 
   return wrap;
 },
+
 
 
   Exercises(){
@@ -998,6 +960,7 @@ const footer = document.getElementById("footer");
 if (footer) {
   footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
 }
+
 
 
 
