@@ -495,3 +495,13 @@ Stats(){
 .recap-row { display: flex; gap: 10px; justify-content: space-between; }
 .recap-muted { color: var(--muted); }
 .recap-list { margin: 8px 0 0; padding-left: 18px; }
+
+/* Bigger timer badge */
+#timerDisplay {
+  font-size: clamp(20px, 4.5vw, 28px);
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.22);
+  background: rgba(255,255,255,.06);
+  line-height: 1;
+}
