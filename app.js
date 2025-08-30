@@ -163,6 +163,10 @@ SessionDetail(){
   const wrap = document.createElement('div');
   if(!s){ wrap.innerHTML = `<div class="panel card" style="padding:18px;">Session not found. <a href="#/sessions">Back to sessions</a>.</div>`; return wrap; }
   wrap.className = 'stack';
+  if (!s.collapsed || typeof s.collapsed !== 'object') {
+  s.collapsed = {}; // remember per-exercise collapsed state
+}
+
 
   // migrate old sessions
   if (!Array.isArray(s.muscles)) s.muscles = [];
@@ -390,30 +394,68 @@ SessionDetail(){
       blocks.appendChild(div);
     }
   }
-  renderBlocks();
+  function renderBlocks(){
+  blocks.innerHTML='';
 
-  $('#meta', wrap).addEventListener('input', ()=>{ s.date = $('#date', wrap).value || s.date; s.notes = $('#notes', wrap).value || ''; Store.save(); });
+  for (const it of s.items){
+    const ex = getExercise(it.exerciseId) || { name:'(deleted)', muscle:'Other' };
 
-  $('#add', wrap).addEventListener('submit', (e)=>{
-    e.preventDefault();
-    const exId = exerciseSelect.value; if(!exId) return notice('Pick an exercise');
-    const weight = Number($('#weight', wrap).value);
-    const reps = Number($('#reps', wrap).value);
-    if(!Number.isFinite(weight) || weight < 0) return notice('Enter weight');
-    if(!Number.isInteger(reps) || reps <= 0) return notice('Enter reps');
+    // stats
+    const max = Math.max(0, ...it.sets.map(x => Number(x.weight) || 0));
+    const totalReps = it.sets.reduce((t,x)=> t + (Number(x.reps)||0), 0);
 
-    const item = upsertSessionItem(s, exId);
-    const priorInThisSession = Math.max(0, ...item.sets.map(st => Number(st.weight)||0));
-    const priorOutside = priorMaxWeightOtherSessions(exId, s.id);
-    const priorMax = Math.max(priorInThisSession, priorOutside);
-    const isPB = weight > priorMax;
+    // collapsed/open state
+    const isCollapsed = !!s.collapsed[it.exerciseId];
+    const details = document.createElement('details');
+    details.className = 'card stack ex-block';
+    details.dataset.ex = it.exerciseId;
+    if (!isCollapsed) details.setAttribute('open','');
 
-    item.sets.push({ weight, reps }); Store.save();
-    $('#weight', wrap).value=''; $('#reps', wrap).value=''; renderBlocks();
-    notice(isPB ? `New PB for ${(getExercise(exId)?.name)||'exercise'}: ${weight} kg` : 'Set added');
-    startTimer();
-    prefillFromLast(exId);
-  });
+    // header (summary) — click to toggle
+    const header = `
+      <summary style="list-style:none; cursor:pointer;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div>
+            <strong>${ex.name}</strong>
+            <span class="chip">${ex.muscle}</span>
+            <span class="muted" style="margin-left:8px;">
+              ${it.sets.length} sets • ${totalReps} reps • max ${max}kg
+            </span>
+          </div>
+          <div class="muted" aria-hidden="true">${isCollapsed ? '▶' : '▼'}</div>
+        </div>
+      </summary>
+    `;
+
+    // body (only visible when open)
+    const body = `
+      <div class="stack" style="margin-top:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn" data-addset="${it.exerciseId}">Add set</button>
+          <button class="btn danger" data-delblock="${it.exerciseId}">Remove exercise</button>
+        </div>
+        <table role="table" aria-label="Sets table">
+          <thead>
+            <tr><th>#</th><th>Weight (kg)</th><th>Reps</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            ${it.sets.map((st,idx)=>`
+              <tr>
+                <td>${idx+1}</td>
+                <td>${st.weight}</td>
+                <td>${st.reps}</td>
+                <td><button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    details.innerHTML = header + body;
+    blocks.appendChild(details);
+  }
+}
 
   blocks.addEventListener('click', (e)=>{
     const addId = e.target?.dataset?.addset;
@@ -425,6 +467,17 @@ SessionDetail(){
         Store.save(); renderBlocks(); notice('Set added'); startTimer();
       }
     }
+    // Remember collapsed/open per exercise
+blocks.addEventListener('toggle', (e)=>{
+  const el = e.target;
+  if (el.tagName !== 'DETAILS') return;
+  const exId = el.dataset.ex;
+  if (!exId) return;
+  s.collapsed = s.collapsed || {};
+  s.collapsed[exId] = !el.open; // store "collapsed?"
+  Store.save();
+});
+
     const delBlock = e.target?.dataset?.delblock;
     if(delBlock){
       if(confirm('Remove this exercise from session?')){
@@ -945,6 +998,7 @@ const footer = document.getElementById("footer");
 if (footer) {
   footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
 }
+
 
 
 
