@@ -935,6 +935,16 @@ $('#importSessions', wrap).addEventListener('change', async (e)=>{
     return div;
   }
 };
+// Global press feedback for all .btn (works with dynamic SPA content)
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn');
+  if (!btn) return;
+  // retrigger CSS animation
+  btn.classList.remove('flash');
+  // force reflow so the animation can restart
+  void btn.offsetWidth;
+  btn.classList.add('flash');
+});
 
 // Routes
 Router.on('/sessions', Views.Sessions);
@@ -973,6 +983,7 @@ const footer = document.getElementById("footer");
 if (footer) {
   footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
 }
+
 
 
 
