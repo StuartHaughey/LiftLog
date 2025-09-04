@@ -524,3 +524,42 @@ Stats(){
 @media (min-width: 561px) {
   .sets-cards { display: none; } /* hide cards on desktop/tablet */
 }
+/* --- Button press feedback --- */
+.btn {
+  transition: transform .06s ease, filter .12s ease,
+              background-color .12s ease, box-shadow .12s ease;
+  box-shadow: 0 1px 0 rgba(255,255,255,.06) inset,
+              0 2px 8px rgba(0,0,0,.25);
+}
+
+/* Physical press: slight squash + brighten/darken */
+.btn:active {
+  transform: translateY(1px) scale(0.98);
+  filter: brightness(1.08);
+}
+.btn.primary:active { filter: brightness(1.03) saturate(1.06); }
+.btn.danger:active  { filter: brightness(0.95) saturate(1.1); }
+
+/* Clear keyboard focus for accessibility */
+.btn:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+/* Quick flash ring when pressed (added via JS) */
+.btn.flash {
+  animation: btnFlash .18s ease;
+}
+@keyframes btnFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(56,189,248,.55),
+                   0 2px 8px rgba(0,0,0,.25); }
+  100% { box-shadow: 0 0 0 12px rgba(56,189,248,0),
+                   0 2px 8px rgba(0,0,0,.25); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+  .btn:active { transform: none; filter: none; }
+  .btn.flash { animation: none; }
+}
