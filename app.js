@@ -355,69 +355,112 @@ SessionDetail(){
   const blocks = $('#blocks', wrap);
 
   function renderBlocks(){
-    blocks.innerHTML = '';
-    for (const it of s.items){
-      const ex = getExercise(it.exerciseId) || { name:'(deleted)', muscle:'Other' };
-      const max = Math.max(0, ...it.sets.map(x => Number(x.weight)||0));
-      const totalReps = it.sets.reduce((t,x)=> t + (Number(x.reps)||0), 0);
+  blocks.innerHTML = '';
 
-      const isCollapsed = !!s.collapsed[it.exerciseId];
-      const details = document.createElement('details');
-      details.className = 'card stack ex-block';
-      details.dataset.ex = it.exerciseId;
-      if (!isCollapsed) details.setAttribute('open','');
+  for (const it of s.items){
+    const ex = getExercise(it.exerciseId) || { name:'(deleted)', muscle:'Other' };
+    const max = Math.max(0, ...it.sets.map(x => Number(x.weight)||0));
+    const totalReps = it.sets.reduce((t,x)=> t + (Number(x.reps)||0), 0);
 
-      const header = `
-        <summary style="list-style:none; cursor:pointer;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-            <div>
-              <strong>${ex.name}</strong> <span class="chip">${ex.muscle}</span>
-              <span class="muted" style="margin-left:8px;">${it.sets.length} sets • ${totalReps} reps • max ${max}kg</span>
-            </div>
-            <div class="muted" aria-hidden="true">${isCollapsed ? '▶' : '▼'}</div>
-          </div>
-        </summary>
+    // What was the best BEFORE this session?
+    const pre = bestBeforeSession(it.exerciseId, s.id);
+
+    // Walk this session’s sets to detect PBs as they happen (running best)
+    let running = { weight: pre.weight, repsAtWeight: pre.repsAtWeight };
+    const rowsHTML = it.sets.map((st, idx) => {
+      const w = Number(st.weight)||0;
+      const r = Number(st.reps)||0;
+      const pb = isPBSet(w, r, running);
+
+      // update running best if we just hit a PB
+      if (pb){
+        if (w > running.weight){ running.weight = w; running.repsAtWeight = r; }
+        else if (w === running.weight && r > running.repsAtWeight){ running.repsAtWeight = r; }
+      }
+
+      return `
+        <tr class="${pb ? 'pb-row' : ''}">
+          <td>${idx+1}</td>
+          <td>${w}</td>
+          <td>${r}</td>
+          <td>
+            ${pb ? '<span class="chip pb-badge" aria-label="Personal Best">🔥 PB</span>' : ''}
+            <button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button>
+          </td>
+        </tr>
       `;
+    }).join('');
 
-      const body = `
-  <div class="stack" style="margin-top:8px;">
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="btn" data-addset="${it.exerciseId}">Add set</button>
-      <button class="btn danger" data-delblock="${it.exerciseId}">Remove exercise</button>
-    </div>
+    // Should we show a 🔥 in the header? Only for *weight* PB vs pre-session
+    const sessionHasWeightPB = it.sets.some(st => Number(st.weight)||0 > pre.weight);
 
-    <!-- Desktop/tablet table -->
-    <table class="sets-table" role="table" aria-label="Sets table">
-      <thead><tr><th>#</th><th>Weight (kg)</th><th>Reps</th><th>Actions</th></tr></thead>
-      <tbody>
-        ${it.sets.map((st,idx)=>`
-          <tr>
-            <td>${idx+1}</td>
-            <td>${st.weight}</td>
-            <td>${st.reps}</td>
-            <td><button class="btn danger" data-dels="${it.exerciseId}:${idx}">Delete</button></td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+    const isCollapsed = !!s.collapsed[it.exerciseId];
+    const details = document.createElement('details');
+    details.className = 'card stack ex-block';
+    details.dataset.ex = it.exerciseId;
+    if (!isCollapsed) details.setAttribute('open','');
 
-    <!-- Mobile cards -->
-    <div class="sets-cards">
-      ${it.sets.map((st,idx)=>`
-        <div class="set-card">
-          <div>Set ${idx+1} — ${st.weight} × ${st.reps}</div>
-          <button class="btn danger" data-dels="${it.exerciseId}:${idx}">✕</button>
+    details.innerHTML = `
+      <summary style="list-style:none; cursor:pointer;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div>
+            <strong>${ex.name}</strong> <span class="chip">${ex.muscle}</span>
+            <span class="muted" style="margin-left:8px;">
+              ${it.sets.length} sets • ${totalReps} reps • max ${max}kg
+              ${sessionHasWeightPB ? '<span class="chip pb-badge" style="margin-left:6px;">🔥</span>' : ''}
+            </span>
+          </div>
+          <div class="muted" aria-hidden="true">${isCollapsed ? '▶' : '▼'}</div>
         </div>
-      `).join('')}
-    </div>
-  </div>
-`;
+      </summary>
+
+      <div class="stack" style="margin-top:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn" data-addset="${it.exerciseId}">Add set</button>
+          <button class="btn danger" data-delblock="${it.exerciseId}">Remove exercise</button>
+        </div>
+
+        <table role="table" aria-label="Sets table">
+          <thead><tr><th>#</th><th>Weight (kg)</th><th>Reps</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${rowsHTML}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    blocks.appendChild(details);
+  }
+}
 
 
       details.innerHTML = header + body;
       blocks.appendChild(details);
     }
   }
+  // Best BEFORE this session (weight PB + reps-at-that-weight)
+function bestBeforeSession(exerciseId, currentSessionId){
+  let bestW = 0, bestRepsAtW = 0;
+  for (const sess of Store.data.sessions){
+    if (sess.id === currentSessionId) continue;
+    const it = sess.items.find(x => x.exerciseId === exerciseId);
+    if (!it) continue;
+    for (const st of it.sets){
+      const w = Number(st.weight)||0, r = Number(st.reps)||0;
+      if (w > bestW) { bestW = w; bestRepsAtW = r; }
+      else if (w === bestW && r > bestRepsAtW) { bestRepsAtW = r; }
+    }
+  }
+  return { weight: bestW, repsAtWeight: bestRepsAtW };
+}
+
+// Decide if a set is a PB vs a running best (weight PB, or reps PB at same weight)
+function isPBSet(setW, setR, runningBest){
+  if (setW > runningBest.weight) return true;
+  if (setW === runningBest.weight && setR > runningBest.repsAtWeight) return true;
+  return false;
+}
+
   renderBlocks();
 
   // Persist collapsed/open per exercise
@@ -983,6 +1026,7 @@ const footer = document.getElementById("footer");
 if (footer) {
   footer.textContent = `LiftLog ${APP_VERSION} — stores everything in your browser (localStorage). Export CSV any time.`;
 }
+
 
 
 
