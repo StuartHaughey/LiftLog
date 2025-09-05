@@ -563,3 +563,13 @@ Stats(){
   .btn:active { transform: none; filter: none; }
   .btn.flash { animation: none; }
 }
+/* PB (Personal Best) highlight */
+.pb-row { 
+  background: rgba(52,211,153,.12);            /* green tint */
+  border-bottom-color: rgba(52,211,153,.35);
+}
+.pb-badge { 
+  margin-left: 8px;
+  border-color: rgba(52,211,153,.6);
+  color: #bbf7d0;                               /* light green text */
+}
