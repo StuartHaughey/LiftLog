@@ -1,111 +1,575 @@
-/* ============================================================================
-   Lift Log – styles.css (Training Diary Edition)
-   ========================================================================== */
-
 :root {
-  --bg: #ffffff;
-  --text: #0b1220;
-  --panel: #ffffff;
-  --accent: rgba(15, 23, 42, 0.05);
-  --border: #e2e8f0;
-  --muted: #64748b;
-
-  --green: #1f9d55;
-  --red: #e3342f;
-
-  --radius: 10px;
-  --radius-sm: 8px;
-  --shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1220;
-    --text: #f8fafc;
-    --panel: #0f172a;
-    --accent: rgba(148, 163, 184, 0.12);
-    --border: #243244;
-    --muted: #9aa6b2;
-    --shadow: 0 1px 2px rgba(0,0,0,0.4);
-  }
+  --bg: #0b1220;        /* solid background */
+  --panel: #111827;     /* cards/panels */
+  --muted: #5f738c;     /* secondary text */
+  --text: #eaf0f7;      /* main text */
+  --accent: #22d3ee;    /* primary accent */
+  --accent-2: #38bdf8;  /* secondary accent */
+  --danger: #f87171;
+  --ok: #34d399;
 }
 
 * { box-sizing: border-box; }
+html, body { height: 100%; }
+html { font-size: 18px; } /* bumped up for readability */
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
-  background: var(--bg);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);  /* flat colour, no bands */
   color: var(--text);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.app {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
 }
 
 header {
-  padding: 18px 16px;
-  border-bottom: 1px solid var(--border);
-  background: var(--panel);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg); /* flat, fast */
 }
-header h1 { margin: 0; font-size: 22px; }
-header .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
 
-main { max-width: 900px; margin: 0 auto; padding: 16px; }
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.brand .logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg,var(--accent),var(--accent-2));
+  display: inline-block;
+}
+
+nav { display: flex; gap: 10px; align-items: center; }
+nav a {
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #cbd5e1;
+}
+nav a.active {
+  background: rgba(56,189,248,.15);
+  color: #fff;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 18px 50px;
+}
 
 .panel {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   background: var(--panel);
-  margin-bottom: 16px;
-  box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.22);
 }
-.panel h2 {
+
+.stack { display: grid; gap: 16px; }
+.grid { display: grid; grid-template-columns: repeat(12,1fr); gap: 16px; }
+
+.card {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.muted { color: var(--muted); }
+
+.headline {
+  font-size: clamp(24px, 3.2vw, 34px); /* larger headline */
+  font-weight: 800;
+  letter-spacing: .2px;
   margin: 0;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
-  font-size: 16px;
 }
-.panel .content { padding: 12px 14px; }
 
-.controls {
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-}
-.controls input,
-.controls button {
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--panel);
-  color: var(--text);
-}
-.controls button {
-  background: var(--accent);
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;        /* bigger buttons */
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: #fff;
   cursor: pointer;
+  font-size: 1rem;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;       /* prevent vertical letter stacking */
+  word-break: keep-all;      /* don't split words like "Open" */
 }
-.controls button:hover { filter: brightness(0.95); }
+.btn:hover { border-color: rgba(56,189,248,.45); }
+.btn.primary {
+  background: linear-gradient(135deg,var(--accent),var(--accent-2));
+  border: none;
+  color: #041014;
+}
+.btn.danger {
+  background: rgba(248,113,113,.15);
+  border-color: rgba(248,113,113,.35);
+  color: #fecaca;
+}
+.btn:disabled { opacity: .6; cursor: not-allowed; }
 
-.cards {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+:focus-visible {
+  outline: 3px solid rgba(56,189,248,.7);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+form .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-.card {
-  background: var(--accent);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+label {
+  font-size: 13px;
+  color: #a3b2c7;
+  display: block;
+  margin-bottom: 6px;
+}
+input, select, textarea {
+  width: 100%;
   padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.02);
+  color: var(--text);
+  font-size: 1rem;
 }
-.card .label { color: var(--muted); font-size: 12px; }
-.card .value { font-weight: 700; font-size: 20px; }
+input::placeholder { color: #64748b; }
 
-.logTable { width: 100%; border-collapse: collapse; }
-.logTable th, .logTable td {
-  border-bottom: 1px solid var(--border);
-  padding: 8px;
+/* Exercise picker group headings */
+select optgroup[label] {
+  color: #a3b2c7;
+  font-style: normal;
+  font-weight: 600;
+  background: rgba(255,255,255,.02);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+th, td {
   text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px dashed rgba(255,255,255,.08);
+  vertical-align: top;
+  /* FIX: don't break words into single letters */
+  word-break: normal;
 }
-.logTable th { color: var(--muted); font-size: 12px; }
+th {
+  font-size: 13px;
+  color: #8aa0bd;
+  font-weight: 600;
+  white-space: nowrap; /* keep headers on one line */
+}
+/* Prevent action buttons from wrapping vertically */
+td:last-child .btn { white-space: nowrap; word-break: keep-all; }
 
-.canvasBox { height: 280px; }
+tbody tr:hover { background: rgba(255,255,255,.03); }
 
-.foot {
+.chip {
+  padding: 4px 8px;
+  font-size: 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+/* Personal Best badge */
+.chip.pb {
+  background: rgba(52,211,153,.18);
+  border-color: rgba(52,211,153,.4);
+  color: #86efac;
+}
+
+/* Small close button inside chips */
+.chip .btn {
+  padding: 2px 6px;
+  font-size: .85rem;
+  border-radius: 8px;
+}
+
+.footer {
+  color: #90a4c1;
+  font-size: 13px;
   text-align: center;
-  color: var(--muted);
-  font-size: 12px;
-  margin: 24px 0 8px;
+  padding: 22px 10px;
+}
+
+.notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.75); /* no blur */
+  border: 1px solid rgba(255,255,255,.18);
+  color: var(--text);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all .25s ease;
+  pointer-events: none;
+}
+.notice.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+details summary { cursor: pointer; }
+
+@media (max-width:780px) {
+  form .row { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: 1fr; }
+  nav { flex-wrap: wrap; }
+}
+
+/* Small phones: keep controls readable and avoid wrapping */
+@media (max-width: 520px) {
+  th, td { padding: 10px 10px; }
+  .btn { padding: 10px 12px; font-size: .975rem; }
+  /* Notes column (2nd) can wrap; others try to stay on one line */
+  td:nth-child(2) { max-width: 65vw; overflow-wrap: anywhere; }
+  /* Make tables scroll horizontally if they still overflow */
+  .card > table { display: block; overflow-x: auto; }
+}
+
+/* Be kind to folks who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+Stats(){
+  const wrap=document.createElement('div'); wrap.className='stack';
+  const { byExercise, byMuscle } = computeStats();
+  wrap.innerHTML = `
+  <section class="panel card stack" aria-labelledby="st-h1">
+    <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <h1 id="st-h1" class="headline" style="margin:0;">Stats</h1>
+      <div class="stack" style="grid-auto-flow: column; gap: 8px; display:grid;">
+        <button class="btn" id="exportEx">Export by exercise (CSV)</button>
+        <button class="btn" id="exportMu">Export by muscle (CSV)</button>
+      </div>
+    </div>
+
+    <!-- Row 1: existing tables -->
+    <div class="grid">
+      <div class="card" style="grid-column: span 7;">
+        <h3>By Exercise</h3>
+        <table role="table" aria-label="By exercise table">
+          <thead><tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Max Weight (kg)</th></tr></thead>
+          <tbody id="exBody">${byExercise.map(r=>`<tr><td>${r.name}</td><td><span class="chip">${r.muscle}</span></td><td>${r.sets}</td><td>${r.reps}</td><td>${r.maxWeight}</td></tr>`).join('')}</tbody>
+        </table>
+        ${byExercise.length?'' : '<p class="muted">No data yet — do a session.</p>'}
+      </div>
+      <div class="card" style="grid-column: span 5;">
+        <h3>By Muscle Group (All Time)</h3>
+        <table role="table" aria-label="By muscle table">
+          <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th></tr></thead>
+          <tbody id="muBody">${byMuscle.map(r=>`<tr><td><span class="chip">${r.muscle}</span></td><td>${r.sets}</td><td>${r.reps}</td></tr>`).join('')}</tbody>
+        </table>
+        ${byMuscle.length?'' : '<p class="muted">No data yet — do a session.</p>'}
+      </div>
+    </div>
+
+    <!-- Row 2: stacked summaries -->
+    <div class="card">
+      <h3>Last 7 days (by muscle)</h3>
+      <table role="table" aria-label="7-day summary">
+        <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total Weight</th></tr></thead>
+        <tbody id="weekBody"></tbody>
+      </table>
+      <p class="muted" id="weekEmpty" style="display:none;">No sessions in the last week.</p>
+    </div>
+
+    <div class="card">
+      <h3>Last 30 days (by muscle)</h3>
+      <table role="table" aria-label="30-day summary">
+        <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total Weight</th></tr></thead>
+        <tbody id="monthBody"></tbody>
+      </table>
+      <p class="muted" id="monthEmpty" style="display:none;">No sessions in the last 30 days.</p>
+    </div>
+  </section>`;
+
+  $('#exportEx', wrap).addEventListener('click', ()=>{
+    download(toCSV(computeStats().byExercise, ['name','muscle','sets','reps','maxWeight']), 'liftlog_stats_by_exercise.csv', 'text/csv');
+    notice('Exported by-exercise');
+  });
+  $('#exportMu', wrap).addEventListener('click', ()=>{
+    download(toCSV(computeStats().byMuscle, ['muscle','sets','reps']), 'liftlog_stats_by_muscle.csv', 'text/csv');
+    notice('Exported by-muscle');
+  });
+
+  // helpers (reuse from earlier insert near computeStats if you added them there)
+  function inLastNDays(isoDate, n){
+    if (!isoDate) return false;
+    const d = new Date(isoDate + 'T00:00:00');
+    const cutoff = new Date(); cutoff.setHours(0,0,0,0);
+    cutoff.setDate(cutoff.getDate() - (n - 1));
+    return d >= cutoff;
+  }
+  function aggregateByMuscleInLastNDays(n){
+    const by = {};
+    for (const s of Store.data.sessions){
+      if (!inLastNDays(s.date, n)) continue;
+      for (const it of s.items){
+        const ex = getExercise(it.exerciseId); if(!ex) continue;
+        const m = ex.muscle || 'Other';
+        if(!by[m]) by[m] = { muscle:m, sets:0, reps:0, tonnage:0 };
+        for (const st of it.sets){
+          const w = Number(st.weight)||0, r = Number(st.reps)||0;
+          by[m].sets += 1; by[m].reps += r; by[m].tonnage += w * r;
+        }
+      }
+    }
+    return Object.values(by).sort((a,b)=>a.muscle.localeCompare(b.muscle));
+  }
+
+  const week = aggregateByMuscleInLastNDays(7);
+  const month = aggregateByMuscleInLastNDays(30);
+  const wb = $('#weekBody', wrap), mb = $('#monthBody', wrap);
+  const we = $('#weekEmpty', wrap), me = $('#monthEmpty', wrap);
+
+  function renderRangeRows(rows, bodyEl, emptyEl){
+    bodyEl.innerHTML = rows.map(r=>`<tr>
+      <td><span class="chip">${r.muscle}</span></td>
+      <td>${r.sets}</td>
+      <td>${r.reps}</td>
+      <td>${Math.round(r.tonnage)}</td>
+    </tr>`).join('');
+    emptyEl.style.display = rows.length ? 'none' : 'block';
+  }
+  renderRangeRows(week, wb, we);
+  renderRangeRows(month, mb, me);
+
+  return wrap;
+},
+Stats(){
+  const wrap=document.createElement('div'); wrap.className='stack';
+  const { byExercise, byMuscle } = computeStats();
+  wrap.innerHTML = `
+  <section class="panel card stack" aria-labelledby="st-h1">
+    <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <h1 id="st-h1" class="headline" style="margin:0;">Stats</h1>
+      <div class="stack" style="grid-auto-flow: column; gap: 8px; display:grid;">
+        <button class="btn" id="exportEx">Export by exercise (CSV)</button>
+        <button class="btn" id="exportMu">Export by muscle (CSV)</button>
+      </div>
+    </div>
+
+    <!-- Row 1: existing tables -->
+    <div class="grid">
+      <div class="card" style="grid-column: span 7;">
+        <h3>By Exercise</h3>
+        <table role="table" aria-label="By exercise table">
+          <thead><tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Max Weight (kg)</th></tr></thead>
+          <tbody id="exBody">${byExercise.map(r=>`<tr><td>${r.name}</td><td><span class="chip">${r.muscle}</span></td><td>${r.sets}</td><td>${r.reps}</td><td>${r.maxWeight}</td></tr>`).join('')}</tbody>
+        </table>
+        ${byExercise.length?'' : '<p class="muted">No data yet — do a session.</p>'}
+      </div>
+      <div class="card" style="grid-column: span 5;">
+        <h3>By Muscle Group (All Time)</h3>
+        <table role="table" aria-label="By muscle table">
+          <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th></tr></thead>
+          <tbody id="muBody">${byMuscle.map(r=>`<tr><td><span class="chip">${r.muscle}</span></td><td>${r.sets}</td><td>${r.reps}</td></tr>`).join('')}</tbody>
+        </table>
+        ${byMuscle.length?'' : '<p class="muted">No data yet — do a session.</p>'}
+      </div>
+    </div>
+
+    <!-- Row 2: stacked summaries -->
+    <div class="card">
+      <h3>Last 7 days (by muscle)</h3>
+      <table role="table" aria-label="7-day summary">
+        <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total Weight</th></tr></thead>
+        <tbody id="weekBody"></tbody>
+      </table>
+      <p class="muted" id="weekEmpty" style="display:none;">No sessions in the last week.</p>
+    </div>
+
+    <div class="card">
+      <h3>Last 30 days (by muscle)</h3>
+      <table role="table" aria-label="30-day summary">
+        <thead><tr><th>Muscle</th><th>Sets</th><th>Reps</th><th>Total Weight</th></tr></thead>
+        <tbody id="monthBody"></tbody>
+      </table>
+      <p class="muted" id="monthEmpty" style="display:none;">No sessions in the last 30 days.</p>
+    </div>
+  </section>`;
+
+  $('#exportEx', wrap).addEventListener('click', ()=>{
+    download(toCSV(computeStats().byExercise, ['name','muscle','sets','reps','maxWeight']), 'liftlog_stats_by_exercise.csv', 'text/csv');
+    notice('Exported by-exercise');
+  });
+  $('#exportMu', wrap).addEventListener('click', ()=>{
+    download(toCSV(computeStats().byMuscle, ['muscle','sets','reps']), 'liftlog_stats_by_muscle.csv', 'text/csv');
+    notice('Exported by-muscle');
+  });
+
+  // helpers (reuse from earlier insert near computeStats if you added them there)
+  function inLastNDays(isoDate, n){
+    if (!isoDate) return false;
+    const d = new Date(isoDate + 'T00:00:00');
+    const cutoff = new Date(); cutoff.setHours(0,0,0,0);
+    cutoff.setDate(cutoff.getDate() - (n - 1));
+    return d >= cutoff;
+  }
+  function aggregateByMuscleInLastNDays(n){
+    const by = {};
+    for (const s of Store.data.sessions){
+      if (!inLastNDays(s.date, n)) continue;
+      for (const it of s.items){
+        const ex = getExercise(it.exerciseId); if(!ex) continue;
+        const m = ex.muscle || 'Other';
+        if(!by[m]) by[m] = { muscle:m, sets:0, reps:0, tonnage:0 };
+        for (const st of it.sets){
+          const w = Number(st.weight)||0, r = Number(st.reps)||0;
+          by[m].sets += 1; by[m].reps += r; by[m].tonnage += w * r;
+        }
+      }
+    }
+    return Object.values(by).sort((a,b)=>a.muscle.localeCompare(b.muscle));
+  }
+
+  const week = aggregateByMuscleInLastNDays(7);
+  const month = aggregateByMuscleInLastNDays(30);
+  const wb = $('#weekBody', wrap), mb = $('#monthBody', wrap);
+  const we = $('#weekEmpty', wrap), me = $('#monthEmpty', wrap);
+
+  function renderRangeRows(rows, bodyEl, emptyEl){
+    bodyEl.innerHTML = rows.map(r=>`<tr>
+      <td><span class="chip">${r.muscle}</span></td>
+      <td>${r.sets}</td>
+      <td>${r.reps}</td>
+      <td>${Math.round(r.tonnage)}</td>
+    </tr>`).join('');
+    emptyEl.style.display = rows.length ? 'none' : 'block';
+  }
+  renderRangeRows(week, wb, we);
+  renderRangeRows(month, mb, me);
+
+  return wrap;
+},
+          
+/* Recap modal */
+.recap-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.recap-card {
+  max-width: 560px; width: min(92vw, 560px);
+  max-height: 86vh; overflow: auto;
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.45);
+  padding: 16px;
+}
+.recap-grid { display: grid; gap: 10px; }
+.recap-row { display: flex; gap: 10px; justify-content: space-between; }
+.recap-muted { color: var(--muted); }
+.recap-list { margin: 8px 0 0; padding-left: 18px; }
+
+/* Bigger timer badge */
+#timerDisplay {
+  font-size: clamp(20px, 4.5vw, 28px);
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.22);
+  background: rgba(255,255,255,.06);
+  line-height: 1;
+}
+/* Compact set cards on small screens */
+@media (max-width: 560px) {
+  .sets-table { display: none; } /* hide the table */
+  .sets-cards { display: grid; gap: 6px; }
+  .set-card {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.04);
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .set-card small { color: var(--muted); }
+}
+@media (min-width: 561px) {
+  .sets-cards { display: none; } /* hide cards on desktop/tablet */
+}
+/* --- Button press feedback --- */
+.btn {
+  transition: transform .06s ease, filter .12s ease,
+              background-color .12s ease, box-shadow .12s ease;
+  box-shadow: 0 1px 0 rgba(255,255,255,.06) inset,
+              0 2px 8px rgba(0,0,0,.25);
+}
+
+/* Physical press: slight squash + brighten/darken */
+.btn:active {
+  transform: translateY(1px) scale(0.98);
+  filter: brightness(1.08);
+}
+.btn.primary:active { filter: brightness(1.03) saturate(1.06); }
+.btn.danger:active  { filter: brightness(0.95) saturate(1.1); }
+
+/* Clear keyboard focus for accessibility */
+.btn:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+/* Quick flash ring when pressed (added via JS) */
+.btn.flash {
+  animation: btnFlash .18s ease;
+}
+@keyframes btnFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(56,189,248,.55),
+                   0 2px 8px rgba(0,0,0,.25); }
+  100% { box-shadow: 0 0 0 12px rgba(56,189,248,0),
+                   0 2px 8px rgba(0,0,0,.25); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+  .btn:active { transform: none; filter: none; }
+  .btn.flash { animation: none; }
+}
+/* PB (Personal Best) highlight */
+.pb-row { 
+  background: rgba(52,211,153,.12);            /* green tint */
+  border-bottom-color: rgba(52,211,153,.35);
+}
+.pb-badge { 
+  margin-left: 8px;
+  border-color: rgba(52,211,153,.6);
+  color: #bbf7d0;                               /* light green text */
 }
