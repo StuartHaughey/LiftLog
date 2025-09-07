@@ -1,77 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-AU">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Lift Log – Training Diary</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <title>LiftLog — Simple Weight Training Tracker (PWA)</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Optional: Chart.js for the volume chart -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-
-  <header>
-    <h1>Lift Log</h1>
-    <div class="sub">Simple training diary – logs your lifts in browser</div>
-  </header>
-
-  <main>
-
-    <!-- ========== Add Entry Form ========== -->
-    <section class="panel">
-      <h2>Add Entry</h2>
-      <div class="content">
-        <form id="addForm" class="controls">
-          <input type="date" name="date" required />
-          <input type="text" name="lift" placeholder="Lift (e.g., Squat)" required />
-          <input type="number" name="weight" placeholder="Weight" step="0.5" required />
-          <input type="number" name="reps" placeholder="Reps" required />
-          <input type="number" name="sets" placeholder="Sets" required />
-          <input type="text" name="notes" placeholder="Notes (optional)" />
-          <button type="submit">Add</button>
-        </form>
+  <div class="app">
+    <header>
+      <div class="bar">
+        <div class="brand"><span class="logo" aria-hidden="true"></span><span>LiftLog</span></div>
+        <nav aria-label="Primary">
+          <a href="#/sessions" id="nav-sessions">Sessions</a>
+          <a href="#/exercises" id="nav-exercises">Exercises</a>
+          <a href="#/stats" id="nav-stats">Stats</a>
+          <a href="#/about" id="nav-about">About</a>
+          <button class="btn" id="installBtn" style="display:none;">Install App</button>
+        </nav>
       </div>
-    </section>
+    </header>
 
-    <!-- ========== Metrics ========== -->
-    <section class="panel">
-      <h2>Metrics</h2>
-      <div class="content" id="metricsWrap">
-        <!-- Filled by app.js -->
-      </div>
-    </section>
+    <main id="app"></main>
 
-    <!-- ========== Session Table ========== -->
-    <section class="panel">
-      <h2>Session Log</h2>
-      <div class="content" id="tableWrap">
-        <!-- Table injected by app.js -->
-      </div>
-    </section>
+    <!-- Footer text is injected by app.js using APP_VERSION -->
+    <footer class="footer" id="footer"></footer>
+  </div>
 
-    <!-- ========== Chart ========== -->
-    <section class="panel">
-      <h2>Volume Chart</h2>
-      <div class="content">
-        <div class="canvasBox">
-          <canvas id="trendCanvas"></canvas>
-        </div>
-        <p class="muted">Shows daily training volume (requires Chart.js).</p>
-      </div>
-    </section>
+  <!-- Toasts / notices live outside the main layout -->
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
+  <div id="timerToast" class="notice" role="status" aria-live="polite" style="left:16px; right:auto;"></div>
 
-    <!-- ========== Clear Button ========== -->
-    <section class="panel">
-      <h2>Danger Zone</h2>
-      <div class="content">
-        <button id="clearBtn" type="button">Clear All Entries</button>
-      </div>
-    </section>
-
-    <p class="foot">All data is stored locally in your browser. Export regularly if you want backups.</p>
-  </main>
-
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
