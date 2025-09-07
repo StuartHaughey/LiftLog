@@ -3,93 +3,28 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Lift Log</title>
-
-  <!-- Optional: your own stylesheet (safe to remove if you don't use one) -->
+  <title>Lift Log – Training Diary</title>
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- Optional: Chart.js (weekly trend line). Remove if you don't want charts. -->
+  <!-- Optional: Chart.js for the volume chart -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <!-- Optional: PapaParse (robust CSV parsing). Remove if you don't need it. -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
-  <style>
-    /* Minimal sensible defaults so the page looks tidy even without styles.css */
-    :root { --bg:#0f172a; --panel:#0f172a0d; --border:#e2e8f0; --muted:#64748b; --text:#0b1220; }
-    html, body { margin:0; padding:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; color:#0b1220; background:#fff; }
-    header { padding:18px 16px; border-bottom:1px solid var(--border); }
-    header h1 { margin:0; font-size:22px; }
-    header .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
-
-    main { max-width: 1000px; margin: 0 auto; padding: 16px; }
-
-    .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
-    @media (min-width: 820px) {
-      .row.two { grid-template-columns: 1fr 1fr; }
-      .row.three { grid-template-columns: 1fr 1fr 1fr; }
-    }
-
-    .panel { border:1px solid var(--border); border-radius: 10px; background: #fff; }
-    .panel h2 { margin:0; padding:12px 14px; border-bottom:1px solid var(--border); font-size: 16px; }
-    .panel .content { padding: 12px 14px; }
-
-    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .controls input[type="file"]{ padding: 6px; }
-    .controls input[type="date"], .controls input[type="text"], .controls select { padding:8px; border:1px solid var(--border); border-radius:8px; }
-    .controls button { padding: 8px 12px; border:1px solid var(--border); border-radius: 8px; background:#0f172a0d; cursor:pointer; }
-    .controls button:hover { filter: brightness(0.98); }
-
-    .cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 12px; margin-bottom: 8px; }
-    .card { background:#0f172a0d; border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
-    .card .label { color:#64748b; font-size:12px; }
-    .card .value { font-weight:700; font-size:20px; }
-    .delta { margin-top:6px; font-weight:600; }
-
-    .logTable { width:100%; border-collapse: collapse; }
-    .logTable th, .logTable td { border-bottom:1px solid #e5e7eb; padding:8px; text-align:left; }
-    .logTable th { color:#475569; font-size:12px; }
-
-    .compareRow { display:grid; grid-template-columns: repeat(3, minmax(160px,1fr)); gap:12px; margin-top:12px; }
-    .tile { border:1px solid var(--border); border-radius:8px; padding:10px 12px; background:#0f172a0d; }
-    .tile .label { color:#64748b; font-size:12px; }
-    .tile .value { font-weight:700; font-size:20px; }
-
-    .muted { color:#64748b; }
-    .foot { color:#64748b; font-size:12px; text-align:center; margin: 24px 0 8px; }
-    .canvasBox { height: 280px; }
-  </style>
 </head>
 <body>
 
   <header>
     <h1>Lift Log</h1>
-    <div class="sub">Simple training log with trends — runs on GitHub Pages</div>
+    <div class="sub">Simple training diary – logs your lifts in browser</div>
   </header>
 
   <main>
 
-    <!-- ========== DATA: Import / Export / Clear ========== -->
-    <section class="panel">
-      <h2>Data</h2>
-      <div class="content">
-        <div class="controls">
-          <input id="uploadInput" type="file" accept=".csv" />
-          <button id="exportBtn" type="button">Export CSV</button>
-          <button id="clearBtn" type="button">Clear All</button>
-        </div>
-        <p class="muted" style="margin-top:8px;">
-          CSV headers expected: <code>date,lift,weight,reps,sets,notes</code> (case-insensitive accepted).
-        </p>
-      </div>
-    </section>
-
-    <!-- ========== QUICK ADD ENTRY FORM ========== -->
+    <!-- ========== Add Entry Form ========== -->
     <section class="panel">
       <h2>Add Entry</h2>
       <div class="content">
         <form id="addForm" class="controls">
           <input type="date" name="date" required />
-          <input type="text" name="lift" placeholder="Lift (e.g., Bench Press)" required />
+          <input type="text" name="lift" placeholder="Lift (e.g., Squat)" required />
           <input type="number" name="weight" placeholder="Weight" step="0.5" required />
           <input type="number" name="reps" placeholder="Reps" required />
           <input type="number" name="sets" placeholder="Sets" required />
@@ -99,7 +34,7 @@
       </div>
     </section>
 
-    <!-- ========== METRICS ========== -->
+    <!-- ========== Metrics ========== -->
     <section class="panel">
       <h2>Metrics</h2>
       <div class="content" id="metricsWrap">
@@ -107,44 +42,36 @@
       </div>
     </section>
 
-    <!-- ========== FILTERS + TABLE ========== -->
+    <!-- ========== Session Table ========== -->
     <section class="panel">
       <h2>Session Log</h2>
-      <div class="content">
-        <div class="controls" style="margin-bottom:8px;">
-          <input id="filterLift" type="text" placeholder="Filter by lift…" />
-          <label class="muted">From <input id="filterFrom" type="date"></label>
-          <label class="muted">To <input id="filterTo" type="date"></label>
-        </div>
-        <div id="tableWrap">
-          <!-- Table injected here -->
-        </div>
+      <div class="content" id="tableWrap">
+        <!-- Table injected by app.js -->
       </div>
     </section>
 
-    <!-- ========== WEEKLY TREND CHART ========== -->
+    <!-- ========== Chart ========== -->
     <section class="panel">
-      <h2>Weekly Volume Trend</h2>
+      <h2>Volume Chart</h2>
       <div class="content">
         <div class="canvasBox">
           <canvas id="trendCanvas"></canvas>
         </div>
-        <p class="muted">If Chart.js isn’t loaded, this section will gracefully skip the chart.</p>
+        <p class="muted">Shows daily training volume (requires Chart.js).</p>
       </div>
     </section>
 
-    <!-- ========== COMPARISONS ========== -->
+    <!-- ========== Clear Button ========== -->
     <section class="panel">
-      <h2>Comparisons</h2>
-      <div class="content" id="compareWrap">
-        <!-- Comparison tiles injected here -->
+      <h2>Danger Zone</h2>
+      <div class="content">
+        <button id="clearBtn" type="button">Clear All Entries</button>
       </div>
     </section>
 
-    <p class="foot">All data is stored locally in your browser (LocalStorage). Export regularly to back up.</p>
+    <p class="foot">All data is stored locally in your browser. Export regularly if you want backups.</p>
   </main>
 
-  <!-- Your app logic (must be last) -->
   <script src="app.js"></script>
 </body>
 </html>
